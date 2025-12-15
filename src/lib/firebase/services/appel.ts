@@ -16,11 +16,21 @@ import type { AppelDeFonds, CreateAppelInput } from '@/types/appel';
 import type { Repartition } from '@/types/repartition';
 import type { Lot } from '@/types/lot';
 import { createHistoriqueEntry } from './historique';
+import { IS_TEST_MODE, mockStore, generateTestId, createMockTimestamp } from '@/lib/test/mock-data';
+
+// Mock repartitions storage for test mode
+const mockRepartitions: Map<string, Repartition[]> = new Map();
 
 /**
  * Récupère tous les appels de fonds d'une copropriété
  */
 export async function getAppels(coproId: string): Promise<AppelDeFonds[]> {
+  if (IS_TEST_MODE) {
+    return [...mockStore.appels].sort((a, b) =>
+      b.dateEcheance.seconds - a.dateEcheance.seconds
+    );
+  }
+
   const appelsQuery = query(
     collection(db, 'coproprietes', coproId, 'appels'),
     orderBy('dateEcheance', 'desc')
@@ -40,6 +50,13 @@ export function subscribeToAppels(
   coproId: string,
   callback: (appels: AppelDeFonds[]) => void
 ): Unsubscribe {
+  if (IS_TEST_MODE) {
+    callback([...mockStore.appels].sort((a, b) =>
+      b.dateEcheance.seconds - a.dateEcheance.seconds
+    ));
+    return () => {};
+  }
+
   const appelsQuery = query(
     collection(db, 'coproprietes', coproId, 'appels'),
     orderBy('dateEcheance', 'desc')
@@ -58,6 +75,11 @@ export function subscribeToAppels(
  * Récupère un appel par ID
  */
 export async function getAppel(coproId: string, appelId: string): Promise<AppelDeFonds | null> {
+  if (IS_TEST_MODE) {
+    const appel = mockStore.appels.find(a => a.id === appelId);
+    return appel ? (appel as unknown as AppelDeFonds) : null;
+  }
+
   const appelRef = doc(db, 'coproprietes', coproId, 'appels', appelId);
   const appelDoc = await getDoc(appelRef);
 
@@ -72,6 +94,10 @@ export async function getAppel(coproId: string, appelId: string): Promise<AppelD
  * Récupère les répartitions d'un appel
  */
 export async function getRepartitions(coproId: string, appelId: string): Promise<Repartition[]> {
+  if (IS_TEST_MODE) {
+    return mockRepartitions.get(appelId) || [];
+  }
+
   const repartitionsQuery = query(
     collection(db, 'coproprietes', coproId, 'appels', appelId, 'repartitions'),
     orderBy('createdAt', 'asc')
@@ -92,6 +118,11 @@ export function subscribeToRepartitions(
   appelId: string,
   callback: (repartitions: Repartition[]) => void
 ): Unsubscribe {
+  if (IS_TEST_MODE) {
+    callback(mockRepartitions.get(appelId) || []);
+    return () => {};
+  }
+
   const repartitionsQuery = query(
     collection(db, 'coproprietes', coproId, 'appels', appelId, 'repartitions'),
     orderBy('createdAt', 'asc')
@@ -128,6 +159,50 @@ export async function createAppelWithRepartitions(
 
   if (totalTantiemes === 0) {
     throw new Error('Le total des tantièmes est nul');
+  }
+
+  if (IS_TEST_MODE) {
+    const now = createMockTimestamp();
+    const appelId = generateTestId();
+    const appel: AppelDeFonds = {
+      id: appelId,
+      libelle: input.libelle,
+      montantTotalCents: input.montantTotalCents,
+      dateEcheance: now,
+      dateCreation: now,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockStore.appels.push(appel);
+
+    // Create repartitions
+    const repartitions: Repartition[] = [];
+    let montantDistribue = 0;
+    const lotsTries = [...lotsAvecCoproprietaire].sort((a, b) => b.tantiemes - a.tantiemes);
+
+    for (let i = 0; i < lotsTries.length; i++) {
+      const lot = lotsTries[i]!;
+      let montantCents: number;
+      if (i === lotsTries.length - 1) {
+        montantCents = input.montantTotalCents - montantDistribue;
+      } else {
+        montantCents = Math.floor((input.montantTotalCents * lot.tantiemes) / totalTantiemes);
+      }
+      montantDistribue += montantCents;
+
+      repartitions.push({
+        id: generateTestId(),
+        lotId: lot.id,
+        coproprietaireId: lot.coproprietaireId!,
+        montantCents,
+        tantiemesSnapshot: lot.tantiemes,
+        createdAt: now,
+      });
+    }
+    mockRepartitions.set(appelId, repartitions);
+
+    return appel;
   }
 
   const appelRef = doc(collection(db, 'coproprietes', coproId, 'appels'));
@@ -221,6 +296,16 @@ export async function deleteAppel(
   appelId: string,
   userId: string
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.appels.findIndex(a => a.id === appelId);
+    if (index === -1) {
+      throw new Error('Appel de fonds non trouvé');
+    }
+    mockStore.appels.splice(index, 1);
+    mockRepartitions.delete(appelId);
+    return;
+  }
+
   const appelRef = doc(db, 'coproprietes', coproId, 'appels', appelId);
   const appelDoc = await getDoc(appelRef);
 

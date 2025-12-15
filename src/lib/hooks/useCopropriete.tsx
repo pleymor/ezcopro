@@ -8,6 +8,19 @@ import type { Copropriete } from '@/types/copropriete';
 const STORAGE_KEY = 'ezcopro_selected_copro_id';
 const STORAGE_COPRO_KEY = 'ezcopro_selected_copro';
 
+// Test mode configuration
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
+const TEST_COPRO: Copropriete = {
+  id: 'test-copro-123',
+  nom: 'Résidence Test',
+  adresse: '123 Rue du Test, 75001 Paris',
+  members: ['test-user-123'],
+  totalTantiemes: 500,
+  createdBy: 'test-user-123',
+  createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+  updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+};
+
 interface CoproprieteContextType {
   coproprietes: Copropriete[];
   selectedCopro: Copropriete | null;
@@ -63,6 +76,14 @@ export function CoproprieteProvider({ children }: CoproprieteProviderProps) {
     if (!user) {
       setCoproprietes([]);
       setSelectedCoproState(null);
+      setLoading(false);
+      return;
+    }
+
+    // In test mode, use mock data
+    if (IS_TEST_MODE) {
+      setCoproprietes([TEST_COPRO]);
+      setSelectedCoproState(TEST_COPRO);
       setLoading(false);
       return;
     }

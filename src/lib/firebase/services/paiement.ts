@@ -17,11 +17,18 @@ import {
 import { db } from '../config';
 import type { Paiement, CreatePaiementInput } from '@/types/paiement';
 import { createHistoriqueEntry } from './historique';
+import { IS_TEST_MODE, mockStore, generateTestId, createMockTimestamp } from '@/lib/test/mock-data';
 
 /**
  * Récupère tous les paiements d'une copropriété
  */
 export async function getPaiements(coproId: string): Promise<Paiement[]> {
+  if (IS_TEST_MODE) {
+    return [...mockStore.paiements].sort((a, b) =>
+      b.datePaiement.seconds - a.datePaiement.seconds
+    );
+  }
+
   const paiementsQuery = query(
     collection(db, 'coproprietes', coproId, 'paiements'),
     orderBy('datePaiement', 'desc')
@@ -41,6 +48,13 @@ export function subscribeToPaiements(
   coproId: string,
   callback: (paiements: Paiement[]) => void
 ): Unsubscribe {
+  if (IS_TEST_MODE) {
+    callback([...mockStore.paiements].sort((a, b) =>
+      b.datePaiement.seconds - a.datePaiement.seconds
+    ));
+    return () => {};
+  }
+
   const paiementsQuery = query(
     collection(db, 'coproprietes', coproId, 'paiements'),
     orderBy('datePaiement', 'desc')
@@ -59,6 +73,10 @@ export function subscribeToPaiements(
  * Récupère un paiement par ID
  */
 export async function getPaiement(coproId: string, paiementId: string): Promise<Paiement | null> {
+  if (IS_TEST_MODE) {
+    return mockStore.paiements.find(p => p.id === paiementId) || null;
+  }
+
   const paiementRef = doc(db, 'coproprietes', coproId, 'paiements', paiementId);
   const paiementDoc = await getDoc(paiementRef);
 
@@ -76,6 +94,12 @@ export async function getPaiementsByCoproprietaire(
   coproId: string,
   coproprietaireId: string
 ): Promise<Paiement[]> {
+  if (IS_TEST_MODE) {
+    return mockStore.paiements
+      .filter(p => p.coproprietaireId === coproprietaireId)
+      .sort((a, b) => b.datePaiement.seconds - a.datePaiement.seconds);
+  }
+
   const paiementsQuery = query(
     collection(db, 'coproprietes', coproId, 'paiements'),
     where('coproprietaireId', '==', coproprietaireId),
@@ -97,6 +121,14 @@ export function subscribeToPaiementsByCoproprietaire(
   coproprietaireId: string,
   callback: (paiements: Paiement[]) => void
 ): Unsubscribe {
+  if (IS_TEST_MODE) {
+    callback(mockStore.paiements
+      .filter(p => p.coproprietaireId === coproprietaireId)
+      .sort((a, b) => b.datePaiement.seconds - a.datePaiement.seconds)
+    );
+    return () => {};
+  }
+
   const paiementsQuery = query(
     collection(db, 'coproprietes', coproId, 'paiements'),
     where('coproprietaireId', '==', coproprietaireId),
@@ -120,6 +152,22 @@ export async function createPaiement(
   userId: string,
   input: CreatePaiementInput
 ): Promise<Paiement> {
+  if (IS_TEST_MODE) {
+    const now = createMockTimestamp();
+    const paiement: Paiement = {
+      id: generateTestId(),
+      coproprietaireId: input.coproprietaireId,
+      montantCents: input.montantCents,
+      datePaiement: now,
+      reference: input.reference || null,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockStore.paiements.push(paiement);
+    return paiement;
+  }
+
   const paiementRef = doc(collection(db, 'coproprietes', coproId, 'paiements'));
   const now = serverTimestamp();
 
@@ -160,6 +208,20 @@ export async function updatePaiement(
   userId: string,
   input: Partial<CreatePaiementInput>
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.paiements.findIndex(p => p.id === paiementId);
+    if (index === -1) {
+      throw new Error('Paiement non trouvé');
+    }
+    const updates: Partial<Paiement> = { updatedAt: createMockTimestamp() };
+    if (input.coproprietaireId !== undefined) updates.coproprietaireId = input.coproprietaireId;
+    if (input.montantCents !== undefined) updates.montantCents = input.montantCents;
+    if (input.datePaiement !== undefined) updates.datePaiement = createMockTimestamp();
+    if (input.reference !== undefined) updates.reference = input.reference || null;
+    mockStore.paiements[index] = { ...mockStore.paiements[index]!, ...updates };
+    return;
+  }
+
   const paiementRef = doc(db, 'coproprietes', coproId, 'paiements', paiementId);
   const paiementDoc = await getDoc(paiementRef);
 
@@ -208,6 +270,15 @@ export async function deletePaiement(
   paiementId: string,
   userId: string
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.paiements.findIndex(p => p.id === paiementId);
+    if (index === -1) {
+      throw new Error('Paiement non trouvé');
+    }
+    mockStore.paiements.splice(index, 1);
+    return;
+  }
+
   const paiementRef = doc(db, 'coproprietes', coproId, 'paiements', paiementId);
   const paiementDoc = await getDoc(paiementRef);
 

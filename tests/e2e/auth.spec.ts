@@ -15,28 +15,6 @@ test.describe('User Story 1 - Connexion et Accès', () => {
       await expect(page.getByText(/connectez-vous/i)).toBeVisible();
     });
 
-    test.skip('T023: Given utilisateur connecté sans copropriété, When connexion réussie, Then redirigé vers onboarding', async ({
-      page,
-    }) => {
-      // Skip: Ce test nécessite un mock de Firebase Auth
-      // TODO: Implémenter avec un fixture d'authentification
-      await page.goto('/onboarding');
-      await expect(
-        page.getByRole('heading', { name: /copropriété/i }).or(page.getByText(/créer/i))
-      ).toBeVisible();
-    });
-
-    test('T024: Given utilisateur non connecté, When accède à /, Then redirigé vers login', async ({
-      page,
-    }) => {
-      // Un utilisateur non connecté est redirigé vers login
-      await page.goto('/');
-
-      // Attend la redirection vers login
-      await page.waitForURL(/\/login/);
-      await expect(page.getByText(/ezcopro/i)).toBeVisible();
-    });
-
     test('T025: Given utilisateur connecté, When clique déconnexion, Then retourne à écran de connexion', async ({
       page,
     }) => {

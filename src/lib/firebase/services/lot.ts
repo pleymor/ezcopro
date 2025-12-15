@@ -16,11 +16,16 @@ import {
 import { db } from '../config';
 import type { Lot, CreateLotInput, UpdateLotInput } from '@/types/lot';
 import { createHistoriqueEntry } from './historique';
+import { IS_TEST_MODE, mockStore, generateTestId, createMockTimestamp } from '@/lib/test/mock-data';
 
 /**
  * Récupère tous les lots d'une copropriété
  */
 export async function getLots(coproId: string): Promise<Lot[]> {
+  if (IS_TEST_MODE) {
+    return [...mockStore.lots].sort((a, b) => a.numero.localeCompare(b.numero));
+  }
+
   const lotsQuery = query(
     collection(db, 'coproprietes', coproId, 'lots'),
     orderBy('numero', 'asc')
@@ -40,6 +45,12 @@ export function subscribeToLots(
   coproId: string,
   callback: (lots: Lot[]) => void
 ): Unsubscribe {
+  if (IS_TEST_MODE) {
+    // In test mode, just call callback once with mock data
+    callback([...mockStore.lots].sort((a, b) => a.numero.localeCompare(b.numero)));
+    return () => {}; // No-op unsubscribe
+  }
+
   const lotsQuery = query(
     collection(db, 'coproprietes', coproId, 'lots'),
     orderBy('numero', 'asc')
@@ -58,6 +69,10 @@ export function subscribeToLots(
  * Récupère un lot par ID
  */
 export async function getLot(coproId: string, lotId: string): Promise<Lot | null> {
+  if (IS_TEST_MODE) {
+    return mockStore.lots.find(l => l.id === lotId) || null;
+  }
+
   const lotRef = doc(db, 'coproprietes', coproId, 'lots', lotId);
   const lotDoc = await getDoc(lotRef);
 
@@ -76,6 +91,22 @@ export async function createLot(
   userId: string,
   input: CreateLotInput
 ): Promise<Lot> {
+  if (IS_TEST_MODE) {
+    const now = createMockTimestamp();
+    const lot: Lot = {
+      id: generateTestId(),
+      numero: input.numero,
+      type: input.type,
+      tantiemes: input.tantiemes,
+      coproprietaireId: input.coproprietaireId,
+      description: input.description || null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockStore.lots.push(lot);
+    return lot;
+  }
+
   const lotRef = doc(collection(db, 'coproprietes', coproId, 'lots'));
   const now = serverTimestamp();
 
@@ -116,6 +147,19 @@ export async function updateLot(
   userId: string,
   input: UpdateLotInput
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.lots.findIndex(l => l.id === lotId);
+    if (index === -1) {
+      throw new Error('Lot non trouvé');
+    }
+    mockStore.lots[index] = {
+      ...mockStore.lots[index]!,
+      ...input,
+      updatedAt: createMockTimestamp(),
+    };
+    return;
+  }
+
   const lotRef = doc(db, 'coproprietes', coproId, 'lots', lotId);
   const lotDoc = await getDoc(lotRef);
 
@@ -151,6 +195,15 @@ export async function deleteLot(
   lotId: string,
   userId: string
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.lots.findIndex(l => l.id === lotId);
+    if (index === -1) {
+      throw new Error('Lot non trouvé');
+    }
+    mockStore.lots.splice(index, 1);
+    return;
+  }
+
   const lotRef = doc(db, 'coproprietes', coproId, 'lots', lotId);
   const lotDoc = await getDoc(lotRef);
 
@@ -182,6 +235,12 @@ export async function getLotsByCoproprietaire(
   coproId: string,
   coproprietaireId: string
 ): Promise<Lot[]> {
+  if (IS_TEST_MODE) {
+    return mockStore.lots
+      .filter(l => l.coproprietaireId === coproprietaireId)
+      .sort((a, b) => a.numero.localeCompare(b.numero));
+  }
+
   const lotsQuery = query(
     collection(db, 'coproprietes', coproId, 'lots'),
     where('coproprietaireId', '==', coproprietaireId),

@@ -14,11 +14,16 @@ import {
 import { db } from '../config';
 import type { Coproprietaire, CreateCoproprietaireInput, UpdateCoproprietaireInput } from '@/types/coproprietaire';
 import { createHistoriqueEntry } from './historique';
+import { IS_TEST_MODE, mockStore, generateTestId, createMockTimestamp } from '@/lib/test/mock-data';
 
 /**
  * Récupère tous les copropriétaires d'une copropriété
  */
 export async function getCoproprietaires(coproId: string): Promise<Coproprietaire[]> {
+  if (IS_TEST_MODE) {
+    return [...mockStore.coproprietaires].sort((a, b) => a.nom.localeCompare(b.nom));
+  }
+
   const cpQuery = query(
     collection(db, 'coproprietes', coproId, 'coproprietaires'),
     orderBy('nom', 'asc')
@@ -38,6 +43,11 @@ export function subscribeToCoproprietaires(
   coproId: string,
   callback: (coproprietaires: Coproprietaire[]) => void
 ): Unsubscribe {
+  if (IS_TEST_MODE) {
+    callback([...mockStore.coproprietaires].sort((a, b) => a.nom.localeCompare(b.nom)));
+    return () => {};
+  }
+
   const cpQuery = query(
     collection(db, 'coproprietes', coproId, 'coproprietaires'),
     orderBy('nom', 'asc')
@@ -59,6 +69,10 @@ export async function getCoproprietaire(
   coproId: string,
   coproprietaireId: string
 ): Promise<Coproprietaire | null> {
+  if (IS_TEST_MODE) {
+    return mockStore.coproprietaires.find(cp => cp.id === coproprietaireId) || null;
+  }
+
   const cpRef = doc(db, 'coproprietes', coproId, 'coproprietaires', coproprietaireId);
   const cpDoc = await getDoc(cpRef);
 
@@ -77,6 +91,23 @@ export async function createCoproprietaire(
   userId: string,
   input: CreateCoproprietaireInput
 ): Promise<Coproprietaire> {
+  if (IS_TEST_MODE) {
+    const now = createMockTimestamp();
+    const coproprietaire: Coproprietaire = {
+      id: generateTestId(),
+      nom: input.nom,
+      prenom: input.prenom || '',
+      email: input.email || null,
+      telephone: input.telephone || null,
+      userId: null,
+      isAnonymized: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockStore.coproprietaires.push(coproprietaire);
+    return coproprietaire;
+  }
+
   const cpRef = doc(collection(db, 'coproprietes', coproId, 'coproprietaires'));
   const now = serverTimestamp();
 
@@ -118,6 +149,19 @@ export async function updateCoproprietaire(
   userId: string,
   input: UpdateCoproprietaireInput
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.coproprietaires.findIndex(cp => cp.id === coproprietaireId);
+    if (index === -1) {
+      throw new Error('Copropriétaire non trouvé');
+    }
+    mockStore.coproprietaires[index] = {
+      ...mockStore.coproprietaires[index]!,
+      ...input,
+      updatedAt: createMockTimestamp(),
+    };
+    return;
+  }
+
   const cpRef = doc(db, 'coproprietes', coproId, 'coproprietaires', coproprietaireId);
   const cpDoc = await getDoc(cpRef);
 
@@ -153,6 +197,22 @@ export async function anonymizeCoproprietaire(
   coproprietaireId: string,
   userId: string
 ): Promise<void> {
+  if (IS_TEST_MODE) {
+    const index = mockStore.coproprietaires.findIndex(cp => cp.id === coproprietaireId);
+    if (index === -1) {
+      throw new Error('Copropriétaire non trouvé');
+    }
+    mockStore.coproprietaires[index] = {
+      ...mockStore.coproprietaires[index]!,
+      nom: 'Ancien copropriétaire',
+      prenom: '',
+      email: null,
+      telephone: null,
+      updatedAt: createMockTimestamp(),
+    };
+    return;
+  }
+
   const cpRef = doc(db, 'coproprietes', coproId, 'coproprietaires', coproprietaireId);
   const cpDoc = await getDoc(cpRef);
 

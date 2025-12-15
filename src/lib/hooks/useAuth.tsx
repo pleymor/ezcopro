@@ -15,6 +15,15 @@ import {
   onAuthStateChanged,
 } from '@/lib/firebase/auth';
 
+// Test mode configuration
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
+const TEST_USER: AuthUser = {
+  uid: 'test-user-123',
+  email: 'test@ezcopro.local',
+  displayName: 'Test User',
+  photoURL: null,
+};
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -30,11 +39,18 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(IS_TEST_MODE ? TEST_USER : null);
+  const [loading, setLoading] = useState(!IS_TEST_MODE);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // In test mode, skip Firebase auth
+    if (IS_TEST_MODE) {
+      setUser(TEST_USER);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged((authUser) => {
       setUser(authUser);
       setLoading(false);

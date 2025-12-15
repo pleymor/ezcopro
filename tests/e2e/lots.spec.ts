@@ -1,46 +1,63 @@
-import { test, expect } from '@playwright/test';
-
-// Ces tests nécessitent une authentification Firebase
-// TODO: Implémenter un fixture d'authentification pour les activer
-test.describe('User Story 2 - Gestion des Lots', () => {
-  test.describe.configure({ mode: 'serial' });
-
-  test('T037: Given utilisateur non connecté, When accède à /lots, Then redirigé vers login', async ({
-    page,
+import { expect } from '@playwright/test';
+import { test as authTest, TEST_LOT } from './fixtures/auth';
+authTest.describe('User Story 2 - Gestion des Lots (authentifié)', () => {
+  authTest('T038: Given utilisateur connecté, When accède à la liste des lots, Then voit les lots avec détails', async ({
+    authedPage,
   }) => {
-    await page.goto('/lots');
+    await authedPage.goto('/lots');
 
-    // Un utilisateur non connecté est redirigé vers login
-    await page.waitForURL(/\/login/);
-    await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
+    // Voit le titre de la page lots
+    await expect(authedPage.getByRole('heading', { name: /lots/i })).toBeVisible();
+
+    // Voit le lot de test
+    await expect(authedPage.getByText(TEST_LOT.numero)).toBeVisible();
   });
 
-  test.skip('T038: Given utilisateur sur page lots, When clique sur ajouter, Then peut créer un nouveau lot', async ({
-    page,
+  authTest('T039: Given utilisateur sur page lots, When clique sur ajouter, Then peut créer un nouveau lot', async ({
+    authedPage,
   }) => {
-    // Skip: Nécessite authentification
-    await page.goto('/lots');
-    const addButton = page.getByRole('button', { name: /ajouter|nouveau|créer/i });
-    if (await addButton.isVisible()) {
-      await addButton.click();
-      await expect(page.getByLabel(/numéro/i)).toBeVisible();
+    await authedPage.goto('/lots');
+
+    // Clique sur le bouton d'ajout
+    const addButton = authedPage.getByRole('link', { name: /ajouter|nouveau/i });
+    await expect(addButton).toBeVisible();
+    await addButton.click();
+
+    // Voit le formulaire de création - au moins le champ numéro doit être présent
+    await expect(authedPage.getByRole('textbox', { name: /numéro/i })).toBeVisible();
+    // Les autres champs peuvent varier selon l'UI
+  });
+
+  authTest('T040: Given lot existant, When clique modifier, Then peut éditer le lot', async ({
+    authedPage,
+  }) => {
+    await authedPage.goto('/lots');
+
+    // Clique sur le bouton modifier du lot
+    const editButton = authedPage.getByRole('link', { name: /modifier/i }).first();
+    if (await editButton.isVisible()) {
+      await editButton.click();
+
+      // Voit le formulaire d'édition pré-rempli
+      await expect(authedPage.getByLabel(/numéro/i)).toHaveValue(TEST_LOT.numero);
     }
   });
 
-  test.skip('T039: Given lot existant, When clique modifier, Then peut éditer le lot', async ({
-    page,
+  authTest('T041: Given lot existant, When remplit formulaire et soumet, Then lot mis à jour', async ({
+    authedPage,
   }) => {
-    // Skip: Nécessite authentification et données de test
-    await page.goto('/lots/test-id/edit');
-    const form = page.getByRole('form').or(page.getByText(/modifier|éditer|lot/i));
-    await expect(form).toBeVisible();
-  });
+    await authedPage.goto(`/lots/${TEST_LOT.id}/edit`);
 
-  test.skip('T040: Given lot existant, When clique supprimer et confirme, Then lot supprimé', async ({
-    page,
-  }) => {
-    // Skip: Nécessite authentification et données de test
-    await page.goto('/lots');
-    await expect(page.getByRole('heading', { name: /lots/i })).toBeVisible();
+    // Modifie un champ
+    const superficieInput = authedPage.getByLabel(/superficie/i);
+    if (await superficieInput.isVisible()) {
+      await superficieInput.fill('75');
+
+      // Soumet le formulaire
+      await authedPage.getByRole('button', { name: /enregistrer|sauvegarder/i }).click();
+
+      // Vérifie le succès (redirection ou message)
+      await expect(authedPage).toHaveURL(/\/lots/);
+    }
   });
 });

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:emulators": "NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -11,8 +12,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
+    "test:e2e": "NEXT_PUBLIC_TEST_MODE=true playwright test",
+    "test:e2e:ui": "NEXT_PUBLIC_TEST_MODE=true playwright test --ui",
+    "test:e2e:emulators": "NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true playwright test",
+    "dev:test": "NEXT_PUBLIC_TEST_MODE=true next dev",
+    "emulators": "firebase emulators:start",
+    "emulators:seed": "ts-node --esm scripts/seed-emulators.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
