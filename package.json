@@ -1,6 +1,30 @@
 {
   "name": "ezcopro",
   "version": "0.1.0",
+  "description": "Application PWA de gestion de copropriété - Gestion des lots, copropriétaires, appels de fonds et paiements",
+  "author": "EzCopro Team",
+  "license": "MIT",
+  "keywords": [
+    "copropriete",
+    "syndic",
+    "gestion-immobiliere",
+    "pwa",
+    "nextjs",
+    "firebase",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/ezcopro"
+  },
+  "homepage": "https://ezcopro.app",
+  "bugs": {
+    "url": "https://github.com/your-org/ezcopro/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",
