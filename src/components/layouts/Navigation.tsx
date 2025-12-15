@@ -1,0 +1,167 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils/cn';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/hooks/useAuth';
+import {
+  Building2,
+  Users,
+  Wallet,
+  History,
+  Home,
+  LogOut,
+  Menu,
+  PiggyBank,
+} from 'lucide-react';
+import { useState } from 'react';
+
+const navItems = [
+  { href: '/' as const, label: 'Accueil', icon: Home },
+  { href: '/lots' as const, label: 'Lots', icon: Building2 },
+  { href: '/coproprietaires' as const, label: 'Copropriétaires', icon: Users },
+  { href: '/finances' as const, label: 'Finances', icon: Wallet },
+  { href: '/soldes' as const, label: 'Soldes', icon: PiggyBank },
+  { href: '/historique' as const, label: 'Historique', icon: History },
+];
+
+export function Navigation() {
+  const pathname = usePathname();
+  const { user, signOut } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-card">
+        <div className="flex h-16 items-center border-b px-6">
+          <Link href="/" className="text-xl font-bold text-primary">
+            EzCopro
+          </Link>
+        </div>
+
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-muted'
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t p-4">
+          {user && (
+            <div className="mb-3 truncate text-sm text-muted-foreground">
+              {user.email}
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={handleSignOut}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Déconnexion
+          </Button>
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background px-4 md:hidden">
+        <Link href="/" className="text-lg font-bold text-primary">
+          EzCopro
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      </header>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-background md:hidden">
+          <div className="flex h-14 items-center justify-between border-b px-4">
+            <span className="text-lg font-bold">Menu</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              ✕
+            </Button>
+          </div>
+          <nav className="space-y-1 p-4">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+            <hr className="my-4" />
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={handleSignOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Déconnexion
+            </Button>
+          </nav>
+        </div>
+      )}
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background md:hidden">
+        {navItems.slice(0, 5).map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex flex-col items-center gap-1 p-2',
+                isActive ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-xs">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </>
+  );
+}

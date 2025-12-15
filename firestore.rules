@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: vérifie si l'utilisateur est membre d'une copropriété
+    function isMember(coproId) {
+      return request.auth != null &&
+        request.auth.uid in get(/databases/$(database)/documents/coproprietes/$(coproId)).data.members;
+    }
+
+    // Users: lecture/écriture de son propre profil uniquement
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Copropriétés: membres uniquement
+    match /coproprietes/{coproId} {
+      allow read: if request.auth != null &&
+        request.auth.uid in resource.data.members;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null &&
+        request.auth.uid in resource.data.members;
+      allow delete: if false; // Jamais supprimé
+
+      // Sous-collections
+      match /lots/{lotId} {
+        allow read, write: if isMember(coproId);
+      }
+
+      match /coproprietaires/{cpId} {
+        allow read, write: if isMember(coproId);
+      }
+
+      match /appels/{appelId} {
+        allow read, write: if isMember(coproId);
+
+        match /repartitions/{repId} {
+          allow read: if isMember(coproId);
+          allow write: if false; // Créé automatiquement
+        }
+      }
+
+      match /paiements/{paiementId} {
+        allow read, write: if isMember(coproId);
+      }
+
+      match /historique/{entryId} {
+        allow read: if isMember(coproId);
+        allow write: if false; // Créé automatiquement
+      }
+    }
+
+    // Invitations: lecture publique pour validation, écriture par membres
+    match /invitations/{code} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        isMember(request.resource.data.coproprieteId);
+      allow update: if request.auth != null &&
+        resource.data.usedAt == null; // Seulement si pas encore utilisé
+      allow delete: if false;
+    }
+  }
+}
