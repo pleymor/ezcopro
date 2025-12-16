@@ -4,14 +4,50 @@ import Link from 'next/link';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
+import { EmptyState } from '@/components/dashboard/EmptyState';
 import { useCopropriete } from '@/lib/hooks/useCopropriete';
-import { Building2, Users, Wallet, History } from 'lucide-react';
+import { Building2, Users, Wallet, History, AlertCircle } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { coproprietes, selectedCopro, setSelectedCopro, loading } = useCopropriete();
+  const { coproprietes, selectedCopro, setSelectedCopro, loading, error, refresh } = useCopropriete();
 
   if (loading) {
     return <Loading message="Chargement de vos copropriétés..." />;
+  }
+
+  // Gestion de l'erreur de chargement
+  if (error) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] max-w-2xl items-center justify-center px-4 py-8">
+        <Card className="w-full text-center">
+          <CardHeader className="pb-4">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl">Erreur de chargement</CardTitle>
+            <CardDescription className="text-base">{error}</CardDescription>
+          </CardHeader>
+          <div className="pb-6">
+            <Button onClick={() => refresh()} size="lg">
+              Réessayer
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // État vide : aucune copropriété
+  if (coproprietes.length === 0) {
+    return (
+      <EmptyState
+        title="Bienvenue sur EzCopro"
+        description="Vous n'avez pas encore de copropriété. Créez votre première copropriété pour commencer à gérer vos lots, copropriétaires et finances."
+        actionLabel="Créer ma première copropriété"
+        actionHref="/onboarding"
+        icon={Building2}
+      />
+    );
   }
 
   if (!selectedCopro && coproprietes.length > 1) {

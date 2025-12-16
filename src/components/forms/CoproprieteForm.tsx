@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { coproprieteFormSchema, type CoproprieteFormData } from '@/lib/schemas/copropriete';
 import { createCopropriete } from '@/lib/firebase/services/copropriete';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useCopropriete } from '@/lib/hooks/useCopropriete';
 import { useState } from 'react';
 
 interface CoproprieteFormProps {
@@ -17,6 +18,7 @@ interface CoproprieteFormProps {
 
 export function CoproprieteForm({ onSuccess }: CoproprieteFormProps) {
   const { user } = useAuth();
+  const { refresh } = useCopropriete();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -33,6 +35,7 @@ export function CoproprieteForm({ onSuccess }: CoproprieteFormProps) {
     setError(null);
     try {
       await createCopropriete(user.uid, data);
+      await refresh();
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
