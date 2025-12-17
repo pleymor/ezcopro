@@ -30,4 +30,3 @@ TypeScript 5.x (strict mode): Follow standard conventions
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
-- rédige les commits en français
