@@ -1,0 +1,26 @@
+name: Trigger Vercel Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger-deploy:
+    name: Trigger deploy in ezcopro-infra
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch to ezcopro-infra
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.INFRA_REPO_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/pleymor/ezcopro-infra/dispatches \
+            -d '{
+              "event_type": "deploy-pwa",
+              "client_payload": {
+                "ref": "${{ github.ref_name }}",
+                "sha": "${{ github.sha }}",
+                "message": "${{ github.event.head_commit.message }}"
+              }
+            }'
