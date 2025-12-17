@@ -42,16 +42,7 @@ export default function RootLayout({
         {/* FOUC prevention: Apply theme before React hydration */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var stored = localStorage.getItem('ezcopro-theme');
-                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  var isDark = stored === 'dark' || ((stored === 'system' || !stored) && prefersDark);
-                  if (isDark) document.documentElement.classList.add('dark');
-                } catch (e) {}
-              })();
-            `,
+            __html: "(function(){try{var s=localStorage.getItem('ezcopro-theme');var p=window.matchMedia('(prefers-color-scheme:dark)').matches;var d=s==='dark'||((s==='system'||!s)&&p);if(d)document.documentElement.classList.add('dark');}catch(e){}})();",
           }}
         />
       </head>
