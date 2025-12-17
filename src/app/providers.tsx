@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { AuthProvider } from '@/lib/hooks/useAuth';
 import { CoproprieteProvider } from '@/lib/hooks/useCopropriete';
+import { ThemeProvider } from '@/lib/hooks/useTheme';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -10,8 +11,10 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <AuthProvider>
-      <CoproprieteProvider>{children}</CoproprieteProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <CoproprieteProvider>{children}</CoproprieteProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

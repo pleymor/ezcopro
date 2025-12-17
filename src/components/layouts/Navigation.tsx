@@ -16,6 +16,7 @@ import {
   Menu,
   PiggyBank,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
 
 const navItems = [
@@ -84,11 +85,14 @@ export function Navigation() {
         </nav>
 
         <div className="border-t p-4">
-          {user && (
-            <div className="mb-3 truncate text-sm text-muted-foreground">
-              {user.email}
-            </div>
-          )}
+          <div className="mb-3 flex items-center justify-between">
+            {user && (
+              <span className="truncate text-sm text-muted-foreground">
+                {user.email}
+              </span>
+            )}
+            <ThemeToggle />
+          </div>
           <Button
             variant="ghost"
             className="w-full justify-start"
@@ -105,13 +109,16 @@ export function Navigation() {
         <Link href="/" className="text-lg font-bold text-primary">
           EzCopro
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
       {/* Mobile Menu */}

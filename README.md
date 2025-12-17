@@ -30,6 +30,19 @@ EzCopro est une Progressive Web App (PWA) qui fonctionne parfaitement sur mobile
   <img src="screenshots/mobile-finances.png" alt="EzCopro Finances" width="300">
 </p>
 
+### Mode sombre
+
+EzCopro propose un mode sombre pour un confort visuel optimal, avec détection automatique des préférences système.
+
+<p align="center">
+  <img src="screenshots/desktop-dashboard-dark.png" alt="EzCopro Dashboard Dark" width="800">
+</p>
+
+<p align="center">
+  <img src="screenshots/mobile-lots-dark.png" alt="EzCopro Mobile Dark" width="300">
+  <img src="screenshots/mobile-finances-dark.png" alt="EzCopro Finances Dark" width="300">
+</p>
+
 ---
 
 ## Documentation technique
@@ -268,83 +281,94 @@ import { chromium, devices } from 'playwright';
 async function takeScreenshots() {
   const browser = await chromium.launch();
 
-  // Desktop screenshots
-  const desktopContext = await browser.newContext({
-    viewport: { width: 1280, height: 800 }
-  });
-  const desktopPage = await desktopContext.newPage();
-
-  await desktopPage.goto('http://localhost:3000/login');
-  await desktopPage.evaluate(() => {
-    localStorage.setItem('ezcopro_selected_copro_id', 'test-copro-123');
-    localStorage.setItem('ezcopro_selected_copro', JSON.stringify({
-      id: 'test-copro-123',
-      nom: 'Résidence Test',
-      adresse: '123 Rue du Test, 75001 Paris',
-      members: ['test-user-123'],
-      totalTantiemes: 500,
-      createdBy: 'test-user-123',
-      createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-      updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-    }));
-  });
-
   const pages = [
-    { url: '/dashboard', name: 'desktop-dashboard' },
-    { url: '/lots', name: 'desktop-lots' },
-    { url: '/coproprietaires', name: 'desktop-coproprietaires' },
-    { url: '/finances', name: 'desktop-finances' },
-    { url: '/soldes', name: 'desktop-soldes' },
+    { url: '/dashboard', name: 'dashboard' },
+    { url: '/lots', name: 'lots' },
+    { url: '/coproprietaires', name: 'coproprietaires' },
+    { url: '/finances', name: 'finances' },
+    { url: '/soldes', name: 'soldes' },
   ];
 
-  for (const p of pages) {
-    await desktopPage.goto(`http://localhost:3000${p.url}`);
-    await desktopPage.waitForTimeout(2000);
-    await desktopPage.screenshot({ path: `screenshots/${p.name}.png` });
-    console.log(`Captured ${p.name}`);
+  const themes = ['light', 'dark'] as const;
+
+  for (const theme of themes) {
+    const suffix = theme === 'dark' ? '-dark' : '';
+
+    // Desktop screenshots
+    const desktopContext = await browser.newContext({
+      viewport: { width: 1280, height: 800 }
+    });
+    const desktopPage = await desktopContext.newPage();
+
+    await desktopPage.goto('http://localhost:3000/login');
+    await desktopPage.evaluate((t) => {
+      localStorage.setItem('ezcopro_selected_copro_id', 'test-copro-123');
+      localStorage.setItem('ezcopro_selected_copro', JSON.stringify({
+        id: 'test-copro-123',
+        nom: 'Résidence Test',
+        adresse: '123 Rue du Test, 75001 Paris',
+        members: ['test-user-123'],
+        totalTantiemes: 500,
+        createdBy: 'test-user-123',
+        createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+        updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+      }));
+      localStorage.setItem('ezcopro-theme', t);
+      if (t === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }, theme);
+
+    for (const p of pages) {
+      await desktopPage.goto(`http://localhost:3000${p.url}`);
+      await desktopPage.waitForTimeout(2000);
+      await desktopPage.screenshot({ path: `screenshots/desktop-${p.name}${suffix}.png` });
+      console.log(`Captured desktop-${p.name}${suffix}`);
+    }
+
+    await desktopContext.close();
+
+    // Mobile screenshots
+    const mobileContext = await browser.newContext({
+      ...devices['iPhone 12'],
+    });
+    const mobilePage = await mobileContext.newPage();
+
+    await mobilePage.goto('http://localhost:3000/login');
+    await mobilePage.evaluate((t) => {
+      localStorage.setItem('ezcopro_selected_copro_id', 'test-copro-123');
+      localStorage.setItem('ezcopro_selected_copro', JSON.stringify({
+        id: 'test-copro-123',
+        nom: 'Résidence Test',
+        adresse: '123 Rue du Test, 75001 Paris',
+        members: ['test-user-123'],
+        totalTantiemes: 500,
+        createdBy: 'test-user-123',
+        createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+        updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+      }));
+      localStorage.setItem('ezcopro-theme', t);
+      if (t === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }, theme);
+
+    for (const p of pages) {
+      await mobilePage.goto(`http://localhost:3000${p.url}`);
+      await mobilePage.waitForTimeout(2000);
+      await mobilePage.screenshot({ path: `screenshots/mobile-${p.name}${suffix}.png` });
+      console.log(`Captured mobile-${p.name}${suffix}`);
+    }
+
+    await mobileContext.close();
   }
 
-  await desktopContext.close();
-
-  // Mobile screenshots
-  const mobileContext = await browser.newContext({
-    ...devices['iPhone 12'],
-  });
-  const mobilePage = await mobileContext.newPage();
-
-  await mobilePage.goto('http://localhost:3000/login');
-  await mobilePage.evaluate(() => {
-    localStorage.setItem('ezcopro_selected_copro_id', 'test-copro-123');
-    localStorage.setItem('ezcopro_selected_copro', JSON.stringify({
-      id: 'test-copro-123',
-      nom: 'Résidence Test',
-      adresse: '123 Rue du Test, 75001 Paris',
-      members: ['test-user-123'],
-      totalTantiemes: 500,
-      createdBy: 'test-user-123',
-      createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-      updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-    }));
-  });
-
-  const mobilePages = [
-    { url: '/dashboard', name: 'mobile-dashboard' },
-    { url: '/lots', name: 'mobile-lots' },
-    { url: '/coproprietaires', name: 'mobile-coproprietaires' },
-    { url: '/finances', name: 'mobile-finances' },
-    { url: '/soldes', name: 'mobile-soldes' },
-  ];
-
-  for (const p of mobilePages) {
-    await mobilePage.goto(`http://localhost:3000${p.url}`);
-    await mobilePage.waitForTimeout(2000);
-    await mobilePage.screenshot({ path: `screenshots/${p.name}.png` });
-    console.log(`Captured ${p.name}`);
-  }
-
-  await mobileContext.close();
   await browser.close();
-  console.log('Done!');
+  console.log('Done! Screenshots captured for both light and dark themes.');
 }
 
 takeScreenshots().catch(console.error);
