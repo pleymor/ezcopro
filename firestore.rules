@@ -46,7 +46,8 @@ service cloud.firestore {
 
       match /historique/{entryId} {
         allow read: if isMember(coproId);
-        allow write: if false; // Créé automatiquement
+        allow create: if isMember(coproId);
+        allow update, delete: if false;
       }
     }
 

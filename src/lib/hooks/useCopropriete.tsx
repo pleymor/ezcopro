@@ -21,6 +21,17 @@ const TEST_COPRO: Copropriete = {
   updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
 };
 
+// Helper to check localStorage test modes (client-side only)
+function isTestEmptyMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('ezcopro_test_empty_mode') === 'true';
+}
+
+function isTestErrorMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('ezcopro_test_error_mode') === 'true';
+}
+
 interface CoproprieteContextType {
   coproprietes: Copropriete[];
   selectedCopro: Copropriete | null;
@@ -80,8 +91,22 @@ export function CoproprieteProvider({ children }: CoproprieteProviderProps) {
       return;
     }
 
-    // In test mode, use mock data
+    // In test mode, use mock data based on localStorage flags
     if (IS_TEST_MODE) {
+      // Test error mode: simulate loading failure
+      if (isTestErrorMode()) {
+        setError('Erreur de chargement simulée pour les tests');
+        setLoading(false);
+        return;
+      }
+      // Test empty mode: simulate user with no coproprietes
+      if (isTestEmptyMode()) {
+        setCoproprietes([]);
+        setSelectedCoproState(null);
+        setLoading(false);
+        return;
+      }
+      // Default test mode: user with one copropriete
       setCoproprietes([TEST_COPRO]);
       setSelectedCoproState(TEST_COPRO);
       setLoading(false);

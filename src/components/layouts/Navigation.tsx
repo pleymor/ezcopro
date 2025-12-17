@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useCopropriete } from '@/lib/hooks/useCopropriete';
 import {
   Building2,
   Users,
@@ -18,18 +19,20 @@ import {
 import { useState } from 'react';
 
 const navItems = [
-  { href: '/' as const, label: 'Accueil', icon: Home },
-  { href: '/lots' as const, label: 'Lots', icon: Building2 },
-  { href: '/coproprietaires' as const, label: 'Copropriétaires', icon: Users },
-  { href: '/finances' as const, label: 'Finances', icon: Wallet },
-  { href: '/soldes' as const, label: 'Soldes', icon: PiggyBank },
-  { href: '/historique' as const, label: 'Historique', icon: History },
+  { href: '/' as const, label: 'Accueil', icon: Home, requiresCopro: false },
+  { href: '/lots' as const, label: 'Lots', icon: Building2, requiresCopro: true },
+  { href: '/coproprietaires' as const, label: 'Copropriétaires', icon: Users, requiresCopro: true },
+  { href: '/finances' as const, label: 'Finances', icon: Wallet, requiresCopro: true },
+  { href: '/soldes' as const, label: 'Soldes', icon: PiggyBank, requiresCopro: true },
+  { href: '/historique' as const, label: 'Historique', icon: History, requiresCopro: true },
 ];
 
 export function Navigation() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { coproprietes } = useCopropriete();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hasCopro = coproprietes.length > 0;
 
   const handleSignOut = async () => {
     await signOut();
@@ -48,6 +51,20 @@ export function Navigation() {
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const isDisabled = item.requiresCopro && !hasCopro;
+
+            if (isDisabled) {
+              return (
+                <span
+                  key={item.href}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50 cursor-not-allowed"
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </span>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
@@ -113,6 +130,20 @@ export function Navigation() {
           <nav className="space-y-1 p-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
+              const isDisabled = item.requiresCopro && !hasCopro;
+
+              if (isDisabled) {
+                return (
+                  <span
+                    key={item.href}
+                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground/50 cursor-not-allowed"
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </span>
+                );
+              }
+
               return (
                 <Link
                   key={item.href}
@@ -147,6 +178,20 @@ export function Navigation() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background md:hidden">
         {navItems.slice(0, 5).map((item) => {
           const isActive = pathname === item.href;
+          const isDisabled = item.requiresCopro && !hasCopro;
+
+          if (isDisabled) {
+            return (
+              <span
+                key={item.href}
+                className="flex flex-col items-center gap-1 p-2 text-muted-foreground/50 cursor-not-allowed"
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="text-xs">{item.label}</span>
+              </span>
+            );
+          }
+
           return (
             <Link
               key={item.href}

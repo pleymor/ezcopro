@@ -83,18 +83,29 @@ export async function getCopropriete(id: string): Promise<Copropriete | null> {
 
 /**
  * Récupère toutes les copropriétés d'un utilisateur
+ * Retourne un tableau vide si l'utilisateur n'a pas de copropriétés
+ * ou si les permissions Firestore bloquent l'accès (nouveau user)
  */
 export async function getUserCoproprietes(userId: string): Promise<Copropriete[]> {
-  const coproQuery = query(
-    collection(db, 'coproprietes'),
-    where('members', 'array-contains', userId)
-  );
-  const snapshot = await getDocs(coproQuery);
+  try {
+    const coproQuery = query(
+      collection(db, 'coproprietes'),
+      where('members', 'array-contains', userId)
+    );
+    const snapshot = await getDocs(coproQuery);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Copropriete[];
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Copropriete[];
+  } catch (error) {
+    // Firestore renvoie "permission-denied" pour un utilisateur sans copropriété
+    // car la règle vérifie l'appartenance aux membres avant de permettre la lecture
+    if (error instanceof Error && error.message.includes('permission')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 /**
