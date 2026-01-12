@@ -109,10 +109,13 @@ test.describe('Dark Mode Feature', () => {
     }) => {
       // Given: new user with system dark mode enabled
       await page.emulateMedia({ colorScheme: 'dark' })
-      await page.evaluate(() => localStorage.clear())
 
-      // When: open app for the first time
+      // Navigate first, then clear localStorage (can't access localStorage on about:blank)
       await page.goto('/login')
+      await page.evaluate(() => localStorage.removeItem('ezcopro-theme'))
+
+      // When: open app for the first time (reload to apply system preference)
+      await page.reload()
 
       // Then: app displays in dark mode
       const isDark = await page.evaluate(() =>
@@ -126,10 +129,13 @@ test.describe('Dark Mode Feature', () => {
     }) => {
       // Given: new user with system light mode enabled
       await page.emulateMedia({ colorScheme: 'light' })
-      await page.evaluate(() => localStorage.clear())
 
-      // When: open app for the first time
+      // Navigate first, then clear localStorage (can't access localStorage on about:blank)
       await page.goto('/login')
+      await page.evaluate(() => localStorage.removeItem('ezcopro-theme'))
+
+      // When: open app for the first time (reload to apply system preference)
+      await page.reload()
 
       // Then: app displays in light mode
       const isDark = await page.evaluate(() =>

@@ -16,6 +16,7 @@ import {
   Menu,
   PiggyBank,
   BookOpen,
+  Vote,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
@@ -26,6 +27,7 @@ const navItems = [
   { href: '/coproprietaires' as const, label: 'Copropriétaires', icon: Users, requiresCopro: true },
   { href: '/finances' as const, label: 'Finances', icon: Wallet, requiresCopro: true },
   { href: '/soldes' as const, label: 'Soldes', icon: PiggyBank, requiresCopro: true },
+  { href: '/assemblees-generales' as const, label: 'AG', icon: Vote, requiresCopro: true },
   { href: '/historique' as const, label: 'Historique', icon: History, requiresCopro: true },
 ];
 

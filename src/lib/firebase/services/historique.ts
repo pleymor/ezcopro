@@ -15,7 +15,7 @@ import { db } from '../config';
 import { IS_TEST_MODE, mockStore, generateTestId } from '@/lib/test/mock-data';
 
 export type ActionType = 'create' | 'update' | 'delete';
-export type EntityType = 'lot' | 'coproprietaire' | 'appel' | 'paiement' | 'copropriete';
+export type EntityType = 'lot' | 'coproprietaire' | 'appel' | 'paiement' | 'copropriete' | 'assemblee_generale' | 'resolution' | 'presence' | 'vote';
 
 export interface HistoriqueEntry {
   id: string;

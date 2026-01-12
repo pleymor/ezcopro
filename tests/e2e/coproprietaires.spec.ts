@@ -49,9 +49,13 @@ authTest.describe('User Story 3 - Gestion des Copropriétaires (authentifié)', 
   }) => {
     await authedPage.goto('/coproprietaires');
 
-    // Cherche le bouton d'invitation
+    // Cherche le bouton d'invitation (with short timeout to avoid long waits if not present)
     const inviteButton = authedPage.getByRole('button', { name: /inviter|invitation/i }).first();
-    if (await inviteButton.isVisible()) {
+
+    // Check if button exists with a short timeout
+    const isVisible = await inviteButton.isVisible({ timeout: 3000 }).catch(() => false);
+
+    if (isVisible) {
       await inviteButton.click();
 
       // Voit le code d'invitation ou un modal (utilise first() pour éviter les doublons)
