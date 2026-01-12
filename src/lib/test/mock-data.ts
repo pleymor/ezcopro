@@ -9,8 +9,8 @@ import type {
   Resolution,
   Presence,
   Vote,
-  CleRepartition,
 } from '@/types/assemblee-generale';
+import type { CleRepartition } from '@/lib/schemas/cle-repartition';
 
 // Test mode check
 export const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
@@ -135,22 +135,46 @@ export const TEST_PAIEMENTS: Paiement[] = [
 // ASSEMBLÉES GÉNÉRALES - MOCK DATA
 // ============================================
 
-// Clés de répartition (seed data)
+// Clés de répartition (seed data with full schema)
 export const TEST_CLES_REPARTITION: CleRepartition[] = [
   {
     id: 'tantiemes_generaux',
     nom: 'Tantièmes généraux',
     description: 'Charges communes générales',
+    quoteParts: [
+      { lotId: 'test-lot-1', valeur: 5000 }, // 250/500 * 10000
+      { lotId: 'test-lot-2', valeur: 4000 }, // 200/500 * 10000
+      { lotId: 'test-lot-3', valeur: 1000 }, // 50/500 * 10000
+    ],
+    isDefault: true,
+    createdAt: mockTimestamp(new Date('2024-01-01')),
+    updatedAt: mockTimestamp(new Date('2024-01-01')),
   },
   {
     id: 'ascenseur',
     nom: 'Ascenseur',
     description: 'Charges d\'ascenseur (étages concernés)',
+    quoteParts: [
+      { lotId: 'test-lot-1', valeur: 5556 },
+      { lotId: 'test-lot-2', valeur: 4444 },
+      { lotId: 'test-lot-3', valeur: 0 }, // Parking excluded
+    ],
+    isDefault: false,
+    createdAt: mockTimestamp(new Date('2024-01-01')),
+    updatedAt: mockTimestamp(new Date('2024-01-01')),
   },
   {
     id: 'chauffage',
     nom: 'Chauffage collectif',
     description: 'Charges de chauffage',
+    quoteParts: [
+      { lotId: 'test-lot-1', valeur: 5556 },
+      { lotId: 'test-lot-2', valeur: 4444 },
+      { lotId: 'test-lot-3', valeur: 0 }, // Parking excluded
+    ],
+    isDefault: false,
+    createdAt: mockTimestamp(new Date('2024-01-01')),
+    updatedAt: mockTimestamp(new Date('2024-01-01')),
   },
 ];
 
