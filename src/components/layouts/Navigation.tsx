@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   PiggyBank,
+  BookOpen,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
@@ -26,6 +27,10 @@ const navItems = [
   { href: '/finances' as const, label: 'Finances', icon: Wallet, requiresCopro: true },
   { href: '/soldes' as const, label: 'Soldes', icon: PiggyBank, requiresCopro: true },
   { href: '/historique' as const, label: 'Historique', icon: History, requiresCopro: true },
+];
+
+const ressourcesItems = [
+  { href: '/ressources/obligations-legales' as const, label: 'Obligations légales', icon: BookOpen },
 ];
 
 export function Navigation() {
@@ -82,6 +87,33 @@ export function Navigation() {
               </Link>
             );
           })}
+
+          {/* Ressources Section */}
+          <div className="pt-4 mt-4 border-t">
+            <span className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Ressources
+            </span>
+            <div className="mt-2 space-y-1">
+              {ressourcesItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </nav>
 
         <div className="border-t p-4">
@@ -168,6 +200,35 @@ export function Navigation() {
                 </Link>
               );
             })}
+
+            {/* Ressources Section in Mobile Menu */}
+            <div className="pt-4 mt-4 border-t">
+              <span className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Ressources
+              </span>
+              <div className="mt-2 space-y-1">
+                {ressourcesItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
             <hr className="my-4" />
             <Button
               variant="ghost"
