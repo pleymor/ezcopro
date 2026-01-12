@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
@@ -17,18 +18,41 @@ import {
   PiggyBank,
   BookOpen,
   Vote,
+  Key,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
 
-const navItems = [
-  { href: '/' as const, label: 'Accueil', icon: Home, requiresCopro: false },
-  { href: '/lots' as const, label: 'Lots', icon: Building2, requiresCopro: true },
-  { href: '/coproprietaires' as const, label: 'Copropriétaires', icon: Users, requiresCopro: true },
-  { href: '/finances' as const, label: 'Finances', icon: Wallet, requiresCopro: true },
-  { href: '/soldes' as const, label: 'Soldes', icon: PiggyBank, requiresCopro: true },
-  { href: '/assemblees-generales' as const, label: 'AG', icon: Vote, requiresCopro: true },
-  { href: '/historique' as const, label: 'Historique', icon: History, requiresCopro: true },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  requiresCopro: boolean;
+  subItems?: Array<{
+    href: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
+}
+
+const navItems: NavItem[] = [
+  { href: '/', label: 'Accueil', icon: Home, requiresCopro: false },
+  {
+    href: '/lots',
+    label: 'Lots',
+    icon: Building2,
+    requiresCopro: true,
+    subItems: [
+      { href: '/lots/cles-repartition', label: 'Clés de répartition', icon: Key },
+    ],
+  },
+  { href: '/coproprietaires', label: 'Copropriétaires', icon: Users, requiresCopro: true },
+  { href: '/finances', label: 'Finances', icon: Wallet, requiresCopro: true },
+  { href: '/soldes', label: 'Soldes', icon: PiggyBank, requiresCopro: true },
+  { href: '/assemblees-generales', label: 'AG', icon: Vote, requiresCopro: true },
+  { href: '/historique', label: 'Historique', icon: History, requiresCopro: true },
 ];
 
 const ressourcesItems = [
@@ -40,7 +64,18 @@ export function Navigation() {
   const { user, signOut } = useAuth();
   const { coproprietes } = useCopropriete();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const hasCopro = coproprietes.length > 0;
+
+  const toggleExpanded = (href: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href]
+    );
+  };
+
+  const isSubItemActive = (item: NavItem) => {
+    return item.subItems?.some((sub) => pathname.startsWith(sub.href)) ?? false;
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -59,6 +94,8 @@ export function Navigation() {
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const hasSubItems = item.subItems && item.subItems.length > 0;
+            const isExpanded = expandedItems.includes(item.href) || isSubItemActive(item);
             const isDisabled = item.requiresCopro && !hasCopro;
 
             if (isDisabled) {
@@ -74,19 +111,57 @@ export function Navigation() {
             }
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
+              <div key={item.href}>
+                <div className="flex items-center">
+                  <Link
+                    href={item.href as Route}
+                    className={cn(
+                      'flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                      isActive && !isSubItemActive(item)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                  {hasSubItems && (
+                    <button
+                      onClick={() => toggleExpanded(item.href)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      aria-label={isExpanded ? 'Réduire' : 'Développer'}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                {hasSubItems && isExpanded && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {item.subItems!.map((subItem) => {
+                      const isSubActive = pathname.startsWith(subItem.href);
+                      return (
+                        <Link
+                          key={subItem.href}
+                          href={subItem.href as Route}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                            isSubActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-muted text-muted-foreground'
+                          )}
+                        >
+                          <subItem.icon className="h-4 w-4" />
+                          {subItem.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
+              </div>
             );
           })}
 
@@ -171,6 +246,8 @@ export function Navigation() {
           <nav className="space-y-1 p-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
+              const hasSubItems = item.subItems && item.subItems.length > 0;
+              const isExpanded = expandedItems.includes(item.href) || isSubItemActive(item);
               const isDisabled = item.requiresCopro && !hasCopro;
 
               if (isDisabled) {
@@ -186,20 +263,59 @@ export function Navigation() {
               }
 
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
+                <div key={item.href}>
+                  <div className="flex items-center">
+                    <Link
+                      href={item.href as Route}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
+                        isActive && !isSubItemActive(item)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                    {hasSubItems && (
+                      <button
+                        onClick={() => toggleExpanded(item.href)}
+                        className="p-2 hover:bg-muted rounded-lg transition-colors"
+                        aria-label={isExpanded ? 'Réduire' : 'Développer'}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {hasSubItems && isExpanded && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {item.subItems!.map((subItem) => {
+                        const isSubActive = pathname.startsWith(subItem.href);
+                        return (
+                          <Link
+                            key={subItem.href}
+                            href={subItem.href as Route}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={cn(
+                              'flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
+                              isSubActive
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-muted text-muted-foreground'
+                            )}
+                          >
+                            <subItem.icon className="h-4 w-4" />
+                            {subItem.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
                   )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
+                </div>
               );
             })}
 
@@ -265,7 +381,7 @@ export function Navigation() {
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={item.href as Route}
               className={cn(
                 'flex flex-col items-center gap-1 p-2',
                 isActive ? 'text-primary' : 'text-muted-foreground'

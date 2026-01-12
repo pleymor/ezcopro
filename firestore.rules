@@ -44,6 +44,10 @@ service cloud.firestore {
         allow read, write: if isMember(coproId);
       }
 
+      match /clesRepartition/{cleId} {
+        allow read, write: if isMember(coproId);
+      }
+
       match /historique/{entryId} {
         allow read: if isMember(coproId);
         allow create: if isMember(coproId);
