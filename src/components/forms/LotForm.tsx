@@ -102,7 +102,7 @@ export function LotForm({
           type="number"
           min="1"
           placeholder="150"
-          {...register('tantiemes')}
+          {...register('tantiemes', { valueAsNumber: true })}
           aria-invalid={!!errors.tantiemes}
         />
         {errors.tantiemes && (
