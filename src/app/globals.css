@@ -76,3 +76,72 @@
     @apply min-h-[44px] min-w-[44px];
   }
 }
+
+/* Print styles for AG documents */
+@media print {
+  /* Hide non-printable elements */
+  nav,
+  header,
+  footer,
+  .no-print,
+  button,
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Reset background and colors for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Print document container */
+  .print-document {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 1cm !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  /* Page break utilities */
+  .print-page-break {
+    page-break-after: always;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure borders are visible in print */
+  .print-document * {
+    border-color: #333 !important;
+  }
+
+  /* Links styling for print */
+  a {
+    text-decoration: none !important;
+    color: black !important;
+  }
+
+  /* Hide dark mode styling */
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  /* First page without margin top */
+  @page :first {
+    margin-top: 1cm;
+  }
+}

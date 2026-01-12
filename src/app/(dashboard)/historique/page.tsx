@@ -50,6 +50,10 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   appel: 'Appel de fonds',
   paiement: 'Paiement',
   copropriete: 'Copropriété',
+  assemblee_generale: 'Assemblée Générale',
+  resolution: 'Résolution',
+  presence: 'Présence',
+  vote: 'Vote',
 };
 
 export default function HistoriquePage() {

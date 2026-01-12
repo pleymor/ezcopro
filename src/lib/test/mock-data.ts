@@ -4,6 +4,13 @@ import type { Lot } from '@/types/lot';
 import type { Coproprietaire } from '@/types/coproprietaire';
 import type { AppelDeFonds } from '@/types/appel';
 import type { Paiement } from '@/types/paiement';
+import type {
+  AssembleeGenerale,
+  Resolution,
+  Presence,
+  Vote,
+  CleRepartition,
+} from '@/types/assemblee-generale';
 
 // Test mode check
 export const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
@@ -124,6 +131,41 @@ export const TEST_PAIEMENTS: Paiement[] = [
   },
 ];
 
+// ============================================
+// ASSEMBLÉES GÉNÉRALES - MOCK DATA
+// ============================================
+
+// Clés de répartition (seed data)
+export const TEST_CLES_REPARTITION: CleRepartition[] = [
+  {
+    id: 'tantiemes_generaux',
+    nom: 'Tantièmes généraux',
+    description: 'Charges communes générales',
+  },
+  {
+    id: 'ascenseur',
+    nom: 'Ascenseur',
+    description: 'Charges d\'ascenseur (étages concernés)',
+  },
+  {
+    id: 'chauffage',
+    nom: 'Chauffage collectif',
+    description: 'Charges de chauffage',
+  },
+];
+
+// Test assemblées générales
+export const TEST_ASSEMBLEES_GENERALES: AssembleeGenerale[] = [];
+
+// Test résolutions
+export const TEST_RESOLUTIONS: Resolution[] = [];
+
+// Test présences
+export const TEST_PRESENCES: Presence[] = [];
+
+// Test votes
+export const TEST_VOTES: Vote[] = [];
+
 // Mock data store (mutable for tests)
 export const mockStore = {
   coproprietes: [TEST_COPRO] as Copropriete[],
@@ -140,6 +182,12 @@ export const mockStore = {
     userId: string;
     timestamp: Date;
   }>,
+  // Assemblées générales
+  clesRepartition: [...TEST_CLES_REPARTITION] as CleRepartition[],
+  assembleesGenerales: [...TEST_ASSEMBLEES_GENERALES] as AssembleeGenerale[],
+  resolutions: [...TEST_RESOLUTIONS] as Resolution[],
+  presences: [...TEST_PRESENCES] as Presence[],
+  votes: [...TEST_VOTES] as Vote[],
 };
 
 // Helper to reset mock data
@@ -149,6 +197,12 @@ export function resetMockData(): void {
   mockStore.appels = [...TEST_APPELS];
   mockStore.paiements = [...TEST_PAIEMENTS];
   mockStore.historique = [];
+  // Assemblées générales
+  mockStore.clesRepartition = [...TEST_CLES_REPARTITION];
+  mockStore.assembleesGenerales = [...TEST_ASSEMBLEES_GENERALES];
+  mockStore.resolutions = [...TEST_RESOLUTIONS];
+  mockStore.presences = [...TEST_PRESENCES];
+  mockStore.votes = [...TEST_VOTES];
 }
 
 // Helper to generate ID

@@ -35,9 +35,15 @@ export const TEST_COPROPRIETAIRE = {
 // Authenticated test fixture
 type AuthFixtures = {
   authedPage: Page;
+  isMobile: boolean;
 };
 
 export const test = base.extend<AuthFixtures>({
+  isMobile: [async ({ }, use, testInfo) => {
+    // Check if test is running with a mobile project (mobile-chrome, etc.)
+    const isMobile = testInfo.project.name.toLowerCase().includes('mobile');
+    await use(isMobile);
+  }, { scope: 'test' }],
   authedPage: async ({ page }, use) => {
     // In test mode (NEXT_PUBLIC_TEST_MODE=true), the app automatically
     // uses mock data and bypasses Firebase authentication.
