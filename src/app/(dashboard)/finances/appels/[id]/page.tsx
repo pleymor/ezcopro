@@ -76,7 +76,7 @@ export default function AppelDetailPage() {
 
     setIsDeleting(true);
     try {
-      await deleteAppel(selectedCopro.id, appelId, user.uid);
+      await deleteAppel(selectedCopro.id, appelId, user.uid, user.email || '');
       router.push('/finances');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');

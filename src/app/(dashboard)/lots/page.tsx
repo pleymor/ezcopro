@@ -8,14 +8,14 @@ import { ErrorMessage } from '@/components/ui/error-message';
 import { LotCard } from '@/components/lots/LotCard';
 import { subscribeToLots, deleteLot } from '@/lib/firebase/services/lot';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCoproId } from '@/lib/hooks/useCoproId';
 import type { Lot } from '@/types/lot';
 import { Plus } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function LotsPage() {
   const { user } = useAuth();
-  const { selectedCopro, loading: coproLoading } = useCopropriete();
+  const { coproId, selectedCopro, loading: coproLoading } = useCoproId();
   const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,22 +23,22 @@ export default function LotsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!selectedCopro) return;
+    if (!coproId) return;
 
-    const unsubscribe = subscribeToLots(selectedCopro.id, (updatedLots) => {
+    const unsubscribe = subscribeToLots(coproId, (updatedLots) => {
       setLots(updatedLots);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [selectedCopro]);
+  }, [coproId]);
 
   const handleDelete = async () => {
     if (!deleteTarget || !selectedCopro || !user) return;
 
     setIsDeleting(true);
     try {
-      await deleteLot(selectedCopro.id, deleteTarget.id, user.uid);
+      await deleteLot(selectedCopro.id, deleteTarget.id, user.uid, user.email || '');
       setDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');

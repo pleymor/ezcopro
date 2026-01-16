@@ -35,8 +35,7 @@ service cloud.firestore {
         allow read, write: if isMember(coproId);
 
         match /repartitions/{repId} {
-          allow read: if isMember(coproId);
-          allow write: if false; // Créé automatiquement
+          allow read, write: if isMember(coproId);
         }
       }
 
@@ -52,6 +51,22 @@ service cloud.firestore {
         allow read: if isMember(coproId);
         allow create: if isMember(coproId);
         allow update, delete: if false;
+      }
+
+      match /assemblees-generales/{agId} {
+        allow read, write: if isMember(coproId);
+
+        match /resolutions/{resId} {
+          allow read, write: if isMember(coproId);
+
+          match /votes/{voteId} {
+            allow read, write: if isMember(coproId);
+          }
+        }
+
+        match /presences/{presId} {
+          allow read, write: if isMember(coproId);
+        }
       }
     }
 

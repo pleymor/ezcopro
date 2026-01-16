@@ -150,6 +150,7 @@ export function subscribeToPaiementsByCoproprietaire(
 export async function createPaiement(
   coproId: string,
   userId: string,
+  userEmail: string,
   input: CreatePaiementInput
 ): Promise<Paiement> {
   if (IS_TEST_MODE) {
@@ -187,7 +188,7 @@ export async function createPaiement(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'paiement',
     entityId: paiementRef.id,
@@ -206,6 +207,7 @@ export async function updatePaiement(
   coproId: string,
   paiementId: string,
   userId: string,
+  userEmail: string,
   input: Partial<CreatePaiementInput>
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -252,7 +254,7 @@ export async function updatePaiement(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'paiement',
     entityId: paiementId,
@@ -268,7 +270,8 @@ export async function updatePaiement(
 export async function deletePaiement(
   coproId: string,
   paiementId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   if (IS_TEST_MODE) {
     const index = mockStore.paiements.findIndex(p => p.id === paiementId);
@@ -293,7 +296,7 @@ export async function deletePaiement(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'delete',
     entityType: 'paiement',
     entityId: paiementId,

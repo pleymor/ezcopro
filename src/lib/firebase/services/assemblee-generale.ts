@@ -137,6 +137,7 @@ export function subscribeToAssembleeGenerale(
 export async function createAssembleeGenerale(
   coproId: string,
   userId: string,
+  userEmail: string,
   input: CreateAGInput,
   totalTantiemes: number
 ): Promise<AssembleeGenerale> {
@@ -182,7 +183,7 @@ export async function createAssembleeGenerale(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'assemblee_generale',
     entityId: agRef.id,
@@ -201,6 +202,7 @@ export async function updateAssembleeGenerale(
   coproId: string,
   agId: string,
   userId: string,
+  userEmail: string,
   input: UpdateAGInput
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -261,7 +263,7 @@ export async function updateAssembleeGenerale(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'assemblee_generale',
     entityId: agId,
@@ -277,7 +279,8 @@ export async function updateAssembleeGenerale(
 export async function deleteAssembleeGenerale(
   coproId: string,
   agId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   if (IS_TEST_MODE) {
     const index = mockStore.assembleesGenerales.findIndex((ag) => ag.id === agId);
@@ -317,7 +320,7 @@ export async function deleteAssembleeGenerale(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'delete',
     entityType: 'assemblee_generale',
     entityId: agId,
@@ -334,6 +337,7 @@ export async function transitionAGStatus(
   coproId: string,
   agId: string,
   userId: string,
+  userEmail: string,
   newStatus: AGStatus
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -396,7 +400,7 @@ export async function transitionAGStatus(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'assemblee_generale',
     entityId: agId,

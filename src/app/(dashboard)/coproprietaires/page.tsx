@@ -14,14 +14,14 @@ import {
 } from '@/lib/firebase/services/coproprietaire';
 import { getLotsByCoproprietaire } from '@/lib/firebase/services/lot';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCoproId } from '@/lib/hooks/useCoproId';
 import type { Coproprietaire } from '@/types/coproprietaire';
 import type { Lot } from '@/types/lot';
 import { Plus } from 'lucide-react';
 
 export default function CoproprietairesPage() {
   const { user } = useAuth();
-  const { selectedCopro, loading: coproLoading } = useCopropriete();
+  const { coproId, selectedCopro, loading: coproLoading } = useCoproId();
   const [coproprietaires, setCoproprietaires] = useState<Coproprietaire[]>([]);
   const [lotsMap, setLotsMap] = useState<Record<string, Lot[]>>({});
   const [loading, setLoading] = useState(true);
@@ -31,14 +31,14 @@ export default function CoproprietairesPage() {
   const [isAnonymizing, setIsAnonymizing] = useState(false);
 
   useEffect(() => {
-    if (!selectedCopro) return;
+    if (!coproId) return;
 
-    const unsubscribe = subscribeToCoproprietaires(selectedCopro.id, async (updated) => {
+    const unsubscribe = subscribeToCoproprietaires(coproId, async (updated) => {
       setCoproprietaires(updated);
 
       // Charger les lots pour chaque copropriétaire
       const lotsPromises = updated.map(async (cp) => {
-        const lots = await getLotsByCoproprietaire(selectedCopro.id, cp.id);
+        const lots = await getLotsByCoproprietaire(coproId, cp.id);
         return { id: cp.id, lots };
       });
 
@@ -52,14 +52,14 @@ export default function CoproprietairesPage() {
     });
 
     return () => unsubscribe();
-  }, [selectedCopro]);
+  }, [coproId]);
 
   const handleAnonymize = async () => {
     if (!anonymizeTarget || !selectedCopro || !user) return;
 
     setIsAnonymizing(true);
     try {
-      await anonymizeCoproprietaire(selectedCopro.id, anonymizeTarget.id, user.uid);
+      await anonymizeCoproprietaire(selectedCopro.id, anonymizeTarget.id, user.uid, user.email || '');
       setAnonymizeTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'anonymisation');

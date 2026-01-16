@@ -97,6 +97,7 @@ export async function createResolution(
   coproId: string,
   agId: string,
   userId: string,
+  userEmail: string,
   input: CreateResolutionInput
 ): Promise<Resolution> {
   const now = IS_TEST_MODE ? createMockTimestamp() : serverTimestamp();
@@ -147,7 +148,7 @@ export async function createResolution(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'resolution',
     entityId: resRef.id,
@@ -167,6 +168,7 @@ export async function updateResolution(
   agId: string,
   resolutionId: string,
   userId: string,
+  userEmail: string,
   input: UpdateResolutionInput
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -208,7 +210,7 @@ export async function updateResolution(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'resolution',
     entityId: resolutionId,
@@ -225,7 +227,8 @@ export async function deleteResolution(
   coproId: string,
   agId: string,
   resolutionId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   if (IS_TEST_MODE) {
     const index = mockStore.resolutions.findIndex((r) => r.id === resolutionId);
@@ -287,7 +290,7 @@ export async function deleteResolution(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'delete',
     entityType: 'resolution',
     entityId: resolutionId,
@@ -304,6 +307,7 @@ export async function reorderResolutions(
   coproId: string,
   agId: string,
   userId: string,
+  userEmail: string,
   orderedIds: string[]
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -342,7 +346,7 @@ export async function reorderResolutions(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'resolution',
     entityId: agId,

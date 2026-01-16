@@ -63,7 +63,7 @@ export default function PresencePage({ params }: PageProps) {
     if (!user) return;
     setIsInitializing(true);
     try {
-      await initialize(user.uid);
+      await initialize(user.uid, user.email || '');
     } catch (err) {
       console.error('Error initializing presences:', err);
     } finally {
@@ -75,7 +75,7 @@ export default function PresencePage({ params }: PageProps) {
     if (!user || !selectedCopro) return;
     setIsStarting(true);
     try {
-      await transitionAGStatus(selectedCopro.id, agId, user.uid, 'en_cours');
+      await transitionAGStatus(selectedCopro.id, agId, user.uid, user.email || '', 'en_cours');
       setShowStartDialog(false);
     } catch (err) {
       console.error('Error starting AG:', err);

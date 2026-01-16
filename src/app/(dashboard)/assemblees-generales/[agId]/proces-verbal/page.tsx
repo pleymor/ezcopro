@@ -111,7 +111,7 @@ export default function ProcesVerbalPage({ params }: PageProps) {
 
     setIsTransitioning(true);
     try {
-      await transitionAGStatus(selectedCopro.id, agId, user.uid, 'terminee');
+      await transitionAGStatus(selectedCopro.id, agId, user.uid, user.email || '', 'terminee');
     } catch (err) {
       console.error('Error finalizing AG:', err);
     } finally {

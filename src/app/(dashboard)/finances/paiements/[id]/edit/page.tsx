@@ -65,7 +65,7 @@ export default function EditPaiementPage() {
 
     try {
       const input = paiementFormToInput(data);
-      await updatePaiement(selectedCopro.id, paiementId, user.uid, input);
+      await updatePaiement(selectedCopro.id, paiementId, user.uid, user.email || '', input);
       router.push('/finances');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
@@ -79,7 +79,7 @@ export default function EditPaiementPage() {
 
     setIsDeleting(true);
     try {
-      await deletePaiement(selectedCopro.id, paiementId, user.uid);
+      await deletePaiement(selectedCopro.id, paiementId, user.uid, user.email || '');
       router.push('/finances');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');

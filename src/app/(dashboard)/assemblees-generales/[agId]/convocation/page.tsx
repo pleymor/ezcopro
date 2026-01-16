@@ -58,7 +58,7 @@ export default function ConvocationPage({ params }: PageProps) {
 
     setIsTransitioning(true);
     try {
-      await transitionAGStatus(selectedCopro.id, agId, user.uid, 'convoquee');
+      await transitionAGStatus(selectedCopro.id, agId, user.uid, user.email || '', 'convoquee');
     } catch (err) {
       console.error('Error transitioning AG status:', err);
     } finally {

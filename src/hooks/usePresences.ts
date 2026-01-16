@@ -13,7 +13,7 @@ interface UsePresencesResult {
   summary: AttendanceSummary | null;
   loading: boolean;
   error: Error | null;
-  initialize: (userId: string) => Promise<void>;
+  initialize: (userId: string, userEmail: string) => Promise<void>;
   refreshSummary: () => Promise<void>;
 }
 
@@ -35,11 +35,11 @@ export function usePresences(coproId: string | null, agId: string | null): UsePr
   }, [coproId, agId]);
 
   const initialize = useCallback(
-    async (userId: string) => {
+    async (userId: string, userEmail: string) => {
       if (!coproId || !agId) return;
 
       try {
-        await initializePresences(coproId, agId, userId);
+        await initializePresences(coproId, agId, userId, userEmail);
         await refreshSummary();
       } catch (err) {
         setError(

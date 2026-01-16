@@ -44,7 +44,7 @@ export default function NewAppelPage() {
 
     try {
       const input = appelFormToInput(data);
-      await createAppelWithRepartitions(selectedCopro.id, user.uid, input, lots);
+      await createAppelWithRepartitions(selectedCopro.id, user.uid, user.email || '', input, lots);
       router.push('/finances');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');

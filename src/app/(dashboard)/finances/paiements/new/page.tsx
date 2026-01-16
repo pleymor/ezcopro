@@ -44,7 +44,7 @@ export default function NewPaiementPage() {
 
     try {
       const input = paiementFormToInput(data);
-      await createPaiement(selectedCopro.id, user.uid, input);
+      await createPaiement(selectedCopro.id, user.uid, user.email || '', input);
       router.push('/finances');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement');

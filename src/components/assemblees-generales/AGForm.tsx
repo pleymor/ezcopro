@@ -87,7 +87,7 @@ export function AGForm({ coproId, totalTantiemes, onSuccess, onCancel }: AGFormP
         type: formData.type,
       };
 
-      const ag = await createAssembleeGenerale(coproId, user.uid, input, totalTantiemes);
+      const ag = await createAssembleeGenerale(coproId, user.uid, user.email || '', input, totalTantiemes);
 
       if (onSuccess) {
         onSuccess(ag.id);

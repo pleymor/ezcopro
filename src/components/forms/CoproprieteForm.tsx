@@ -34,7 +34,7 @@ export function CoproprieteForm({ onSuccess }: CoproprieteFormProps) {
 
     setError(null);
     try {
-      await createCopropriete(user.uid, data);
+      await createCopropriete(user.uid, user.email || '', data);
       await refresh();
       onSuccess?.();
     } catch (err) {
