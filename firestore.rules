@@ -52,6 +52,22 @@ service cloud.firestore {
         allow create: if isMember(coproId);
         allow update, delete: if false;
       }
+
+      match /assemblees-generales/{agId} {
+        allow read, write: if isMember(coproId);
+
+        match /resolutions/{resId} {
+          allow read, write: if isMember(coproId);
+
+          match /votes/{voteId} {
+            allow read, write: if isMember(coproId);
+          }
+        }
+
+        match /presences/{presId} {
+          allow read, write: if isMember(coproId);
+        }
+      }
     }
 
     // Invitations: lecture publique pour validation, écriture par membres
