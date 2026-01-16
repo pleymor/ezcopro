@@ -11,7 +11,7 @@ import { subscribeToAppels, deleteAppel } from '@/lib/firebase/services/appel';
 import { subscribeToPaiements, deletePaiement } from '@/lib/firebase/services/paiement';
 import { subscribeToCoproprietaires } from '@/lib/firebase/services/coproprietaire';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCoproId } from '@/lib/hooks/useCoproId';
 import type { AppelDeFonds } from '@/types/appel';
 import type { Paiement } from '@/types/paiement';
 import type { Coproprietaire } from '@/types/coproprietaire';
@@ -23,7 +23,7 @@ type TabType = 'appels' | 'paiements';
 
 export default function FinancesPage() {
   const { user } = useAuth();
-  const { selectedCopro, loading: coproLoading } = useCopropriete();
+  const { coproId, selectedCopro, loading: coproLoading } = useCoproId();
   const [activeTab, setActiveTab] = useState<TabType>('appels');
   const [appels, setAppels] = useState<AppelDeFonds[]>([]);
   const [paiements, setPaiements] = useState<Paiement[]>([]);
@@ -35,18 +35,18 @@ export default function FinancesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!selectedCopro) return;
+    if (!coproId) return;
 
-    const unsubAppels = subscribeToAppels(selectedCopro.id, (updated) => {
+    const unsubAppels = subscribeToAppels(coproId, (updated) => {
       setAppels(updated);
       setLoading(false);
     });
 
-    const unsubPaiements = subscribeToPaiements(selectedCopro.id, (updated) => {
+    const unsubPaiements = subscribeToPaiements(coproId, (updated) => {
       setPaiements(updated);
     });
 
-    const unsubCopros = subscribeToCoproprietaires(selectedCopro.id, (updated) => {
+    const unsubCopros = subscribeToCoproprietaires(coproId, (updated) => {
       setCoproprietaires(updated);
     });
 
@@ -55,7 +55,7 @@ export default function FinancesPage() {
       unsubPaiements();
       unsubCopros();
     };
-  }, [selectedCopro]);
+  }, [coproId]);
 
   const handleDeleteAppel = async () => {
     if (!deleteAppelTarget || !selectedCopro || !user) return;

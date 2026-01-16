@@ -11,7 +11,7 @@ import {
   type HistoriqueEntry,
   type EntityType,
 } from '@/lib/firebase/services/historique';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCoproId } from '@/lib/hooks/useCoproId';
 import { formatRelativeDate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -57,7 +57,7 @@ const ENTITY_LABELS: Record<EntityType, string> = {
 };
 
 export default function HistoriquePage() {
-  const { selectedCopro, loading: coproLoading } = useCopropriete();
+  const { coproId, selectedCopro, loading: coproLoading } = useCoproId();
   const [entries, setEntries] = useState<HistoriqueEntry[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
@@ -70,7 +70,7 @@ export default function HistoriquePage() {
   // Charger l'historique
   const loadHistorique = useCallback(
     async (reset: boolean = false) => {
-      if (!selectedCopro) return;
+      if (!coproId) return;
 
       if (reset) {
         setLoading(true);
@@ -81,7 +81,7 @@ export default function HistoriquePage() {
       }
 
       try {
-        const result = await getHistorique(selectedCopro.id, {
+        const result = await getHistorique(coproId, {
           limit: 20,
           entityType: filter === 'all' ? undefined : filter,
           startAfterDoc: reset ? undefined : lastDoc || undefined,
@@ -101,13 +101,13 @@ export default function HistoriquePage() {
         setLoadingMore(false);
       }
     },
-    [selectedCopro, filter, lastDoc]
+    [coproId, filter, lastDoc]
   );
 
   // Charger au montage et quand le filtre change
   useEffect(() => {
     loadHistorique(true);
-  }, [selectedCopro, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [coproId, filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLoadMore = () => {
     loadHistorique(false);
