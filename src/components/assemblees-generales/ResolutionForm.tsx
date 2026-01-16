@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,9 +8,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { MajorityTypeSelector } from './MajorityTypeSelector';
+import { CleRepartitionSelector } from './CleRepartitionSelector';
 import type { MajoriteType, CreateResolutionInput, Resolution } from '@/types/assemblee-generale';
 import { createResolution, updateResolution } from '@/lib/firebase/services/resolution';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useClesRepartition } from '@/hooks/useClesRepartition';
 
 interface ResolutionFormProps {
   coproId: string;
@@ -28,6 +30,7 @@ export function ResolutionForm({
   onCancel,
 }: ResolutionFormProps) {
   const { user } = useAuth();
+  const { cles } = useClesRepartition(coproId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,9 +38,20 @@ export function ResolutionForm({
     titre: resolution?.titre ?? '',
     description: resolution?.description ?? '',
     typeMajorite: (resolution?.typeMajorite ?? 'article_24') as MajoriteType,
+    cleRepartitionId: resolution?.cleRepartitionId ?? '',
   });
 
   const isEditing = !!resolution;
+
+  // Set default clé when cles are loaded and no value is set
+  useEffect(() => {
+    if (!formData.cleRepartitionId && cles.length > 0) {
+      const defaultCle = cles.find((c) => c.isDefault) || cles[0];
+      if (defaultCle) {
+        setFormData((prev) => ({ ...prev, cleRepartitionId: defaultCle.id }));
+      }
+    }
+  }, [cles, formData.cleRepartitionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +59,11 @@ export function ResolutionForm({
 
     if (!formData.titre.trim()) {
       setError('Le titre est requis.');
+      return;
+    }
+
+    if (!formData.cleRepartitionId) {
+      setError('La clé de répartition est requise.');
       return;
     }
 
@@ -61,12 +80,14 @@ export function ResolutionForm({
           titre: formData.titre.trim(),
           description: formData.description.trim() || null,
           typeMajorite: formData.typeMajorite,
+          cleRepartitionId: formData.cleRepartitionId,
         });
       } else {
         const input: CreateResolutionInput = {
           titre: formData.titre.trim(),
           description: formData.description.trim() || undefined,
           typeMajorite: formData.typeMajorite,
+          cleRepartitionId: formData.cleRepartitionId,
         };
         await createResolution(coproId, agId, user.uid, user.email || '', input);
       }
@@ -129,6 +150,12 @@ export function ResolutionForm({
           <MajorityTypeSelector
             value={formData.typeMajorite}
             onChange={(value) => setFormData((prev) => ({ ...prev, typeMajorite: value }))}
+          />
+
+          <CleRepartitionSelector
+            coproId={coproId}
+            value={formData.cleRepartitionId}
+            onChange={(value) => setFormData((prev) => ({ ...prev, cleRepartitionId: value }))}
           />
         </CardContent>
 
