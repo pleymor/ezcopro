@@ -179,7 +179,20 @@ export const TEST_CLES_REPARTITION: CleRepartition[] = [
 ];
 
 // Test assemblées générales
-export const TEST_ASSEMBLEES_GENERALES: AssembleeGenerale[] = [];
+export const TEST_ASSEMBLEES_GENERALES: AssembleeGenerale[] = [
+  {
+    id: 'test-ag-1',
+    titre: 'AG Ordinaire 2024',
+    type: 'ordinaire',
+    date: mockTimestamp(new Date('2025-03-15')),
+    lieu: 'Salle de réunion',
+    statut: 'brouillon',
+    convocationEnvoyee: false,
+    totalTantiemes: 450,
+    createdAt: mockTimestamp(new Date('2024-01-01')),
+    updatedAt: mockTimestamp(new Date('2024-01-01')),
+  },
+];
 
 // Test résolutions
 export const TEST_RESOLUTIONS: Resolution[] = [];
