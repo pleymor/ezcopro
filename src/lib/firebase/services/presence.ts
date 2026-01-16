@@ -79,7 +79,8 @@ export function subscribeToPresences(
 export async function initializePresences(
   coproId: string,
   agId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   // Check if already initialized
   const existing = await getPresences(coproId, agId);
@@ -151,7 +152,7 @@ export async function initializePresences(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'presence',
     entityId: agId,
@@ -169,6 +170,7 @@ export async function updatePresence(
   agId: string,
   presenceId: string,
   userId: string,
+  userEmail: string,
   input: UpdatePresenceInput
 ): Promise<void> {
   // Validate representation rules
@@ -233,7 +235,7 @@ export async function updatePresence(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'presence',
     entityId: presenceId,

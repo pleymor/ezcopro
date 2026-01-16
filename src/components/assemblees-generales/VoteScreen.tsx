@@ -57,6 +57,7 @@ export function VoteScreen({
         agId,
         resolution.id,
         user.uid,
+        user.email || '',
         { coproprietaireId, choix: choice },
         tantiemes,
         representeParId
@@ -79,7 +80,7 @@ export function VoteScreen({
 
     setIsFinalizing(true);
     try {
-      await finalizeResolutionVote(coproId, agId, resolution.id, user.uid, resolution.typeMajorite);
+      await finalizeResolutionVote(coproId, agId, resolution.id, user.uid, user.email || '', resolution.typeMajorite);
     } catch (err) {
       console.error('Error finalizing vote:', err);
     } finally {

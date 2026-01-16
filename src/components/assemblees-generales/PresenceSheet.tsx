@@ -28,7 +28,7 @@ export function PresenceSheet({ presences, coproId, agId, disabled = false }: Pr
 
     setUpdating(presenceId);
     try {
-      await updatePresence(coproId, agId, presenceId, user.uid, {
+      await updatePresence(coproId, agId, presenceId, user.uid, user.email || '', {
         statut: status,
         // Clear representative if changing away from represente
         representeParId: status === 'represente' ? undefined : null,
@@ -45,7 +45,7 @@ export function PresenceSheet({ presences, coproId, agId, disabled = false }: Pr
 
     setUpdating(presenceId);
     try {
-      await updatePresence(coproId, agId, presenceId, user.uid, {
+      await updatePresence(coproId, agId, presenceId, user.uid, user.email || '', {
         representeParId,
       });
     } catch (err) {

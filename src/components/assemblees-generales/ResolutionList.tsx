@@ -38,7 +38,7 @@ export function ResolutionList({
 
     setIsDeleting(true);
     try {
-      await deleteResolution(coproId, agId, deleteTarget.id, user.uid);
+      await deleteResolution(coproId, agId, deleteTarget.id, user.uid, user.email || '');
       setDeleteTarget(null);
     } catch (err) {
       console.error('Error deleting resolution:', err);
@@ -80,7 +80,7 @@ export function ResolutionList({
     if (!user) return;
 
     try {
-      await reorderResolutions(coproId, agId, user.uid, orderedIds);
+      await reorderResolutions(coproId, agId, user.uid, user.email || '', orderedIds);
     } catch (err) {
       console.error('Error reordering resolutions:', err);
     }

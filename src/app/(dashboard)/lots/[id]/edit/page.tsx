@@ -70,7 +70,7 @@ export default function EditLotPage() {
     setError(null);
 
     try {
-      await updateLot(selectedCopro.id, lotId, user.uid, {
+      await updateLot(selectedCopro.id, lotId, user.uid, user.email || '', {
         numero: data.numero,
         type: data.type,
         tantiemes: data.tantiemes,

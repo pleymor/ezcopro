@@ -28,7 +28,7 @@ export default function NewCoproprietairePage() {
     setError(null);
 
     try {
-      await createCoproprietaire(selectedCopro.id, user.uid, {
+      await createCoproprietaire(selectedCopro.id, user.uid, user.email || '', {
         nom: data.nom,
         prenom: data.prenom || '',
         email: data.email || undefined,

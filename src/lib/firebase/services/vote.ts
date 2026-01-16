@@ -102,6 +102,7 @@ export async function recordVote(
   agId: string,
   resolutionId: string,
   userId: string,
+  userEmail: string,
   input: RecordVoteInput,
   tantiemes: number,
   representantId: string | null = null
@@ -197,7 +198,7 @@ export async function recordVote(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: existingVote ? 'update' : 'create',
     entityType: 'vote',
     entityId: voteRef.id,
@@ -218,6 +219,7 @@ export async function updateVote(
   resolutionId: string,
   voteId: string,
   userId: string,
+  userEmail: string,
   input: UpdateVoteInput
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -261,7 +263,7 @@ export async function updateVote(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'vote',
     entityId: voteId,
@@ -359,6 +361,7 @@ export async function finalizeResolutionVote(
   agId: string,
   resolutionId: string,
   userId: string,
+  userEmail: string,
   typeMajorite: MajoriteType
 ): Promise<ResolutionResult> {
   const votes = await getVotes(coproId, agId, resolutionId);
@@ -393,7 +396,7 @@ export async function finalizeResolutionVote(
   // Create historique entry
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'resolution',
     entityId: resolutionId,

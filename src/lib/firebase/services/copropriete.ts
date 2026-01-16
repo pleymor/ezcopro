@@ -19,6 +19,7 @@ import { createHistoriqueEntry } from './historique';
  */
 export async function createCopropriete(
   userId: string,
+  userEmail: string,
   input: CreateCoproprieteInput
 ): Promise<Copropriete> {
   const coproRef = doc(collection(db, 'coproprietes'));
@@ -55,7 +56,7 @@ export async function createCopropriete(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproRef.id, {
     userId,
-    userEmail: '', // Sera rempli côté client
+    userEmail,
     action: 'create',
     entityType: 'copropriete',
     entityId: coproRef.id,
@@ -114,6 +115,7 @@ export async function getUserCoproprietes(userId: string): Promise<Copropriete[]
 export async function updateCopropriete(
   coproId: string,
   userId: string,
+  userEmail: string,
   input: UpdateCoproprieteInput
 ): Promise<void> {
   const coproRef = doc(db, 'coproprietes', coproId);
@@ -133,7 +135,7 @@ export async function updateCopropriete(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'copropriete',
     entityId: coproId,

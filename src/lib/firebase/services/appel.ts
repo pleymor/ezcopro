@@ -144,6 +144,7 @@ export function subscribeToRepartitions(
 export async function createAppelWithRepartitions(
   coproId: string,
   userId: string,
+  userEmail: string,
   input: CreateAppelInput,
   lots: Lot[]
 ): Promise<AppelDeFonds> {
@@ -273,7 +274,7 @@ export async function createAppelWithRepartitions(
   // Créer l'entrée d'historique (hors transaction)
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'appel',
     entityId: appelRef.id,
@@ -294,7 +295,8 @@ export async function createAppelWithRepartitions(
 export async function deleteAppel(
   coproId: string,
   appelId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   if (IS_TEST_MODE) {
     const index = mockStore.appels.findIndex(a => a.id === appelId);
@@ -332,7 +334,7 @@ export async function deleteAppel(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'delete',
     entityType: 'appel',
     entityId: appelId,

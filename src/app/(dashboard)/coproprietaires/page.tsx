@@ -59,7 +59,7 @@ export default function CoproprietairesPage() {
 
     setIsAnonymizing(true);
     try {
-      await anonymizeCoproprietaire(selectedCopro.id, anonymizeTarget.id, user.uid);
+      await anonymizeCoproprietaire(selectedCopro.id, anonymizeTarget.id, user.uid, user.email || '');
       setAnonymizeTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'anonymisation');

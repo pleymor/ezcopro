@@ -38,7 +38,7 @@ export default function LotsPage() {
 
     setIsDeleting(true);
     try {
-      await deleteLot(selectedCopro.id, deleteTarget.id, user.uid);
+      await deleteLot(selectedCopro.id, deleteTarget.id, user.uid, user.email || '');
       setDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');

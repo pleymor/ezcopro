@@ -89,6 +89,7 @@ export async function getCoproprietaire(
 export async function createCoproprietaire(
   coproId: string,
   userId: string,
+  userEmail: string,
   input: CreateCoproprietaireInput
 ): Promise<Coproprietaire> {
   if (IS_TEST_MODE) {
@@ -128,7 +129,7 @@ export async function createCoproprietaire(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'coproprietaire',
     entityId: cpRef.id,
@@ -147,6 +148,7 @@ export async function updateCoproprietaire(
   coproId: string,
   coproprietaireId: string,
   userId: string,
+  userEmail: string,
   input: UpdateCoproprietaireInput
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -179,7 +181,7 @@ export async function updateCoproprietaire(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'coproprietaire',
     entityId: coproprietaireId,
@@ -195,7 +197,8 @@ export async function updateCoproprietaire(
 export async function anonymizeCoproprietaire(
   coproId: string,
   coproprietaireId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   if (IS_TEST_MODE) {
     const index = mockStore.coproprietaires.findIndex(cp => cp.id === coproprietaireId);
@@ -236,7 +239,7 @@ export async function anonymizeCoproprietaire(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'coproprietaire',
     entityId: coproprietaireId,

@@ -55,7 +55,7 @@ export default function NewLotPage() {
     setError(null);
 
     try {
-      await createLot(selectedCopro.id, user.uid, {
+      await createLot(selectedCopro.id, user.uid, user.email || '', {
         numero: data.numero,
         type: data.type,
         tantiemes: data.tantiemes,

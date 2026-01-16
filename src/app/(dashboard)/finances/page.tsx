@@ -62,7 +62,7 @@ export default function FinancesPage() {
 
     setIsDeleting(true);
     try {
-      await deleteAppel(selectedCopro.id, deleteAppelTarget.id, user.uid);
+      await deleteAppel(selectedCopro.id, deleteAppelTarget.id, user.uid, user.email || '');
       setDeleteAppelTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
@@ -76,7 +76,7 @@ export default function FinancesPage() {
 
     setIsDeleting(true);
     try {
-      await deletePaiement(selectedCopro.id, deletePaiementTarget.id, user.uid);
+      await deletePaiement(selectedCopro.id, deletePaiementTarget.id, user.uid, user.email || '');
       setDeletePaiementTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');

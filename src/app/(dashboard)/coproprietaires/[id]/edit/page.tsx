@@ -57,7 +57,7 @@ export default function EditCoproprietairePage() {
     setError(null);
 
     try {
-      await updateCoproprietaire(selectedCopro.id, coproprietaireId, user.uid, {
+      await updateCoproprietaire(selectedCopro.id, coproprietaireId, user.uid, user.email || '', {
         nom: data.nom,
         prenom: data.prenom || '',
         email: data.email || null,

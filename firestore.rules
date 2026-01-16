@@ -35,8 +35,7 @@ service cloud.firestore {
         allow read, write: if isMember(coproId);
 
         match /repartitions/{repId} {
-          allow read: if isMember(coproId);
-          allow write: if false; // Créé automatiquement
+          allow read, write: if isMember(coproId);
         }
       }
 

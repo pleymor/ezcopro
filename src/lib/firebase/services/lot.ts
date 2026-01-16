@@ -89,6 +89,7 @@ export async function getLot(coproId: string, lotId: string): Promise<Lot | null
 export async function createLot(
   coproId: string,
   userId: string,
+  userEmail: string,
   input: CreateLotInput
 ): Promise<Lot> {
   if (IS_TEST_MODE) {
@@ -126,7 +127,7 @@ export async function createLot(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'create',
     entityType: 'lot',
     entityId: lotRef.id,
@@ -145,6 +146,7 @@ export async function updateLot(
   coproId: string,
   lotId: string,
   userId: string,
+  userEmail: string,
   input: UpdateLotInput
 ): Promise<void> {
   if (IS_TEST_MODE) {
@@ -177,7 +179,7 @@ export async function updateLot(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'update',
     entityType: 'lot',
     entityId: lotId,
@@ -193,7 +195,8 @@ export async function updateLot(
 export async function deleteLot(
   coproId: string,
   lotId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
   if (IS_TEST_MODE) {
     const index = mockStore.lots.findIndex(l => l.id === lotId);
@@ -218,7 +221,7 @@ export async function deleteLot(
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproId, {
     userId,
-    userEmail: '',
+    userEmail,
     action: 'delete',
     entityType: 'lot',
     entityId: lotId,

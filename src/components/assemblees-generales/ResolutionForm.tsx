@@ -57,7 +57,7 @@ export function ResolutionForm({
 
     try {
       if (isEditing) {
-        await updateResolution(coproId, agId, resolution.id, user.uid, {
+        await updateResolution(coproId, agId, resolution.id, user.uid, user.email || '', {
           titre: formData.titre.trim(),
           description: formData.description.trim() || null,
           typeMajorite: formData.typeMajorite,
@@ -68,7 +68,7 @@ export function ResolutionForm({
           description: formData.description.trim() || undefined,
           typeMajorite: formData.typeMajorite,
         };
-        await createResolution(coproId, agId, user.uid, input);
+        await createResolution(coproId, agId, user.uid, user.email || '', input);
       }
 
       if (onSuccess) {
