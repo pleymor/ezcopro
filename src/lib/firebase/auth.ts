@@ -3,7 +3,9 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged as firebaseOnAuthStateChanged,
+  getIdTokenResult as firebaseGetIdTokenResult,
   User as FirebaseUser,
+  IdTokenResult,
 } from 'firebase/auth';
 import { auth } from './config';
 
@@ -68,4 +70,13 @@ export const getCurrentUser = (): AuthUser | null => {
     displayName: firebaseUser.displayName,
     photoURL: firebaseUser.photoURL,
   };
+};
+
+/**
+ * Récupère le résultat du token ID avec les custom claims
+ */
+export const getIdTokenResult = async (forceRefresh = false): Promise<IdTokenResult | null> => {
+  const firebaseUser = auth?.currentUser;
+  if (!firebaseUser) return null;
+  return firebaseGetIdTokenResult(firebaseUser, forceRefresh);
 };

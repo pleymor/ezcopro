@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper: vérifie si l'utilisateur est syndic de la copropriété
+    function isSyndic(coproId) {
+      return request.auth != null &&
+        request.auth.token.role == 'syndic' &&
+        request.auth.token.coproprieteId == coproId;
+    }
+
+    // Helper: vérifie si l'utilisateur est copropriétaire de la copropriété
+    function isCoproprietaire(coproId) {
+      return request.auth != null &&
+        request.auth.token.role == 'coproprietaire' &&
+        request.auth.token.coproprieteId == coproId;
+    }
+
+    // Documents partagés des copropriétés
+    match /coproprietes/{coproId}/documents/{allPaths=**} {
+      // Lecture: syndic ou copropriétaire de la copropriété
+      // Note: la vérification visibleExtranet se fait côté Firestore
+      allow read: if isSyndic(coproId) || isCoproprietaire(coproId);
+
+      // Écriture: syndic uniquement avec validation
+      allow write: if isSyndic(coproId) &&
+        // Taille max 10 Mo
+        request.resource.size < 10 * 1024 * 1024 &&
+        // Types MIME autorisés
+        request.resource.contentType.matches('application/pdf|image/jpeg|image/png|image/gif|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document|application/vnd.ms-excel|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
+    // Dossier temporaire pour les uploads en cours
+    match /temp/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

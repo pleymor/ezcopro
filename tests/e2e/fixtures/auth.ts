@@ -45,34 +45,24 @@ export const test = base.extend<AuthFixtures>({
     await use(isMobile);
   }, { scope: 'test' }],
   authedPage: async ({ page }, use) => {
-    // In test mode (NEXT_PUBLIC_TEST_MODE=true), the app automatically
-    // uses mock data and bypasses Firebase authentication.
-    // We just need to navigate to the app and let the test mode handle auth.
+    // Pre-configure localStorage before any page loads using addInitScript
+    await page.addInitScript((copro) => {
+      // Set copro selection
+      localStorage.setItem('ezcopro_selected_copro_id', copro.id);
+      localStorage.setItem('ezcopro_selected_copro', JSON.stringify(copro));
+      // Ensure syndic role (default in test mode)
+      localStorage.setItem('ezcopro_test_role', 'syndic');
+    }, TEST_COPRO);
 
-    // Go to the app - test mode will auto-login with TEST_USER
-    await page.goto('/dashboard');
-
-    // Wait for the page to load (test mode should auto-authenticate)
-    await page.waitForLoadState('networkidle');
+    // Navigate directly to dashboard - localStorage will be set before React hydrates
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify we're authenticated by checking we're not on login page
     const url = page.url();
     if (url.includes('/login')) {
       throw new Error('Test mode authentication failed - still on login page. Make sure NEXT_PUBLIC_TEST_MODE=true is set.');
     }
-
-    // Set the selected copro in localStorage (test mode still uses localStorage for copro selection)
-    await page.evaluate(
-      (copro) => {
-        localStorage.setItem('ezcopro_selected_copro_id', copro.id);
-        localStorage.setItem('ezcopro_selected_copro', JSON.stringify(copro));
-      },
-      TEST_COPRO
-    );
-
-    // Refresh to apply the copro selection
-    await page.reload();
-    await page.waitForLoadState('networkidle');
 
     await use(page);
   },

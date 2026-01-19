@@ -21,6 +21,7 @@ import {
   Key,
   ChevronDown,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
   { href: '/coproprietaires', label: 'Copropriétaires', icon: Users, requiresCopro: true },
   { href: '/finances', label: 'Finances', icon: Wallet, requiresCopro: true },
   { href: '/soldes', label: 'Soldes', icon: PiggyBank, requiresCopro: true },
+  { href: '/documents', label: 'Documents', icon: FileText, requiresCopro: true },
   { href: '/assemblees-generales', label: 'AG', icon: Vote, requiresCopro: true },
   { href: '/historique', label: 'Historique', icon: History, requiresCopro: true },
 ];

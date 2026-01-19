@@ -8,21 +8,24 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { InviteButton } from '@/components/extranet/InviteButton';
 import type { Coproprietaire } from '@/types/coproprietaire';
 import type { Lot } from '@/types/lot';
-import { Pencil, Mail, UserX } from 'lucide-react';
+import { Pencil, UserX } from 'lucide-react';
 
 interface CoproprietaireCardProps {
   coproprietaire: Coproprietaire;
   lots: Lot[];
-  onInvite?: () => void;
+  onInviteExtranet?: (email: string) => Promise<void>;
+  onResendInvitation?: () => Promise<void>;
   onAnonymize?: () => void;
 }
 
 export function CoproprietaireCard({
   coproprietaire,
   lots,
-  onInvite,
+  onInviteExtranet,
+  onResendInvitation,
   onAnonymize,
 }: CoproprietaireCardProps) {
   const totalTantiemes = lots.reduce((sum, lot) => sum + lot.tantiemes, 0);
@@ -71,11 +74,14 @@ export function CoproprietaireCard({
                 Modifier
               </Button>
             </Link>
-            {!coproprietaire.userId && onInvite && (
-              <Button variant="outline" size="sm" onClick={onInvite}>
-                <Mail className="mr-2 h-4 w-4" />
-                Inviter
-              </Button>
+            {!coproprietaire.userId && onInviteExtranet && (
+              <InviteButton
+                coproprietaireId={coproprietaire.id}
+                coproprietaireNom={`${coproprietaire.prenom} ${coproprietaire.nom}`}
+                coproprietaireEmail={coproprietaire.email ?? null}
+                onInvite={onInviteExtranet}
+                onResend={onResendInvitation}
+              />
             )}
             {onAnonymize && (
               <Button variant="ghost" size="sm" onClick={onAnonymize}>

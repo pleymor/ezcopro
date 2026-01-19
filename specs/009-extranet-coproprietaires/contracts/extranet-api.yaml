@@ -1,0 +1,559 @@
+# Extranet Copropriétaires - Service Contracts
+#
+# Note: ezcopro utilise Firebase/Firestore comme backend, pas d'API REST traditionnelle.
+# Ce fichier documente les interfaces de service et opérations Firestore.
+#
+# Date: 2025-01-16
+# Feature: 009-extranet-coproprietaires
+
+openapi: 3.0.3
+info:
+  title: Extranet Copropriétaires - Service Contracts
+  description: |
+    Documentation des opérations de service pour l'extranet copropriétaires.
+    Ces opérations sont implémentées via Firebase SDK (Firestore + Auth + Storage).
+  version: 1.0.0
+
+# Les "paths" représentent les opérations de service, pas des endpoints HTTP
+paths:
+  /invitations/create:
+    post:
+      operationId: createInvitation
+      summary: Créer une invitation extranet
+      description: |
+        Le syndic envoie une invitation à un copropriétaire.
+        - Vérifie que le copropriétaire a un email
+        - Vérifie qu'aucune invitation active n'existe
+        - Génère un token unique UUID v4
+        - Envoie l'email via Firebase Extension
+      tags:
+        - Invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvitationInput'
+      responses:
+        '201':
+          description: Invitation créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationExtranet'
+        '400':
+          description: |
+            - Copropriétaire sans email
+            - Invitation active existante
+        '403':
+          description: Non autorisé (pas syndic de cette copropriété)
+
+  /invitations/accept:
+    post:
+      operationId: acceptInvitation
+      summary: Accepter une invitation
+      description: |
+        Le copropriétaire crée son compte via le lien d'invitation.
+        - Valide le token
+        - Vérifie que l'invitation n'est pas expirée
+        - Crée le compte Firebase Auth
+        - Définit les Custom Claims
+        - Met à jour le statut de l'invitation
+        - Lie le compte au copropriétaire
+      tags:
+        - Invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitationInput'
+      responses:
+        '200':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  redirectUrl:
+                    type: string
+                    example: /extranet
+        '400':
+          description: Token invalide ou expiré
+        '409':
+          description: Compte déjà existant pour cet email
+
+  /invitations/resend:
+    post:
+      operationId: resendInvitation
+      summary: Renvoyer une invitation expirée
+      description: |
+        Le syndic renvoie une invitation expirée.
+        - Invalide l'ancienne invitation
+        - Crée une nouvelle invitation avec nouveau token
+      tags:
+        - Invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - coproId
+                - coproprietaireId
+              properties:
+                coproId:
+                  type: string
+                coproprietaireId:
+                  type: string
+      responses:
+        '201':
+          description: Nouvelle invitation créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationExtranet'
+
+  /extranet/solde:
+    get:
+      operationId: getSolde
+      summary: Obtenir le solde du copropriétaire connecté
+      description: |
+        Retourne le solde actuel avec détail des appels et paiements.
+        Utilise le service existant `getDetailSoldeCoproprietaire`.
+      tags:
+        - Extranet - Finances
+      parameters:
+        - name: coproId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Détail du solde
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailSolde'
+        '403':
+          description: Non autorisé
+
+  /extranet/paiements:
+    get:
+      operationId: getPaiements
+      summary: Historique des paiements du copropriétaire
+      description: |
+        Liste paginée des paiements avec filtres optionnels.
+      tags:
+        - Extranet - Finances
+      parameters:
+        - name: coproId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: dateDebut
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateFin
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Liste des paiements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Paiement'
+
+  /extranet/paiements/justificatif:
+    get:
+      operationId: generateJustificatif
+      summary: Générer un justificatif PDF des paiements
+      description: |
+        Génère un PDF récapitulatif des paiements sur une période.
+        Généré côté client avec @react-pdf/renderer.
+      tags:
+        - Extranet - Finances
+      parameters:
+        - name: dateDebut
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateFin
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: PDF généré
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /extranet/documents:
+    get:
+      operationId: getDocuments
+      summary: Liste des documents partagés
+      description: |
+        Documents visibles sur l'extranet, organisés par catégorie.
+      tags:
+        - Extranet - Documents
+      parameters:
+        - name: coproId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: categorie
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategorieDocument'
+      responses:
+        '200':
+          description: Liste des documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentPartage'
+
+  /extranet/documents/{documentId}/download:
+    get:
+      operationId: downloadDocument
+      summary: Télécharger un document
+      description: |
+        Génère une URL signée Firebase Storage pour téléchargement.
+        Marque le document comme consulté par l'utilisateur.
+      tags:
+        - Extranet - Documents
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: URL de téléchargement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  downloadUrl:
+                    type: string
+                    format: uri
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '403':
+          description: Document non accessible
+        '404':
+          description: Document non trouvé
+
+  /syndic/documents:
+    post:
+      operationId: uploadDocument
+      summary: Uploader un document (syndic)
+      description: |
+        Upload d'un document avec métadonnées.
+        Vérifie le quota de stockage (500 Mo).
+      tags:
+        - Syndic - Documents
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - categorie
+              properties:
+                file:
+                  type: string
+                  format: binary
+                categorie:
+                  $ref: '#/components/schemas/CategorieDocument'
+                visibleExtranet:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Document uploadé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentPartage'
+        '400':
+          description: |
+            - Type de fichier non autorisé
+            - Fichier trop volumineux (> 10 Mo)
+        '507':
+          description: Quota de stockage dépassé (500 Mo)
+
+  /syndic/documents/{documentId}/share:
+    patch:
+      operationId: toggleDocumentVisibility
+      summary: Modifier la visibilité extranet d'un document
+      description: |
+        Active/désactive le partage sur l'extranet.
+        Envoie notification email si activation.
+      tags:
+        - Syndic - Documents
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - visibleExtranet
+              properties:
+                visibleExtranet:
+                  type: boolean
+      responses:
+        '200':
+          description: Visibilité modifiée
+        '404':
+          description: Document non trouvé
+
+  /extranet/preferences:
+    get:
+      operationId: getPreferences
+      summary: Obtenir les préférences de notification
+      tags:
+        - Extranet - Préférences
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesNotification'
+    patch:
+      operationId: updatePreferences
+      summary: Modifier les préférences de notification
+      tags:
+        - Extranet - Préférences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emailNouveauxDocuments:
+                  type: boolean
+      responses:
+        '200':
+          description: Préférences mises à jour
+
+components:
+  schemas:
+    CreateInvitationInput:
+      type: object
+      required:
+        - coproId
+        - coproprietaireId
+      properties:
+        coproId:
+          type: string
+          description: ID de la copropriété
+        coproprietaireId:
+          type: string
+          description: ID du copropriétaire à inviter
+
+    AcceptInvitationInput:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          format: uuid
+          description: Token de l'invitation
+        password:
+          type: string
+          minLength: 8
+          description: Mot de passe choisi par le copropriétaire
+
+    InvitationExtranet:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        coproprietaireId:
+          type: string
+        token:
+          type: string
+          format: uuid
+        dateEnvoi:
+          type: string
+          format: date-time
+        dateExpiration:
+          type: string
+          format: date-time
+        statut:
+          type: string
+          enum: [en_attente, acceptee, expiree]
+        createdAt:
+          type: string
+          format: date-time
+
+    DetailSolde:
+      type: object
+      properties:
+        appels:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailAppel'
+        paiements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailPaiement'
+        totalDuCents:
+          type: integer
+        totalPayeCents:
+          type: integer
+        soldeCents:
+          type: integer
+          description: Positif = débiteur, Négatif = créditeur
+
+    DetailAppel:
+      type: object
+      properties:
+        appelId:
+          type: string
+        libelle:
+          type: string
+        dateEcheance:
+          type: string
+          format: date-time
+        montantCents:
+          type: integer
+        lotId:
+          type: string
+        lotNumero:
+          type: string
+
+    DetailPaiement:
+      type: object
+      properties:
+        paiementId:
+          type: string
+        datePaiement:
+          type: string
+          format: date-time
+        montantCents:
+          type: integer
+        reference:
+          type: string
+          nullable: true
+
+    Paiement:
+      type: object
+      properties:
+        id:
+          type: string
+        coproprietaireId:
+          type: string
+        montantCents:
+          type: integer
+        datePaiement:
+          type: string
+          format: date-time
+        reference:
+          type: string
+          nullable: true
+
+    CategorieDocument:
+      type: string
+      enum:
+        - ag
+        - contrats
+        - reglement
+        - travaux
+        - autres
+
+    DocumentPartage:
+      type: object
+      properties:
+        id:
+          type: string
+        nom:
+          type: string
+        type:
+          type: string
+          description: MIME type
+        taille:
+          type: integer
+          description: Taille en bytes
+        categorie:
+          $ref: '#/components/schemas/CategorieDocument'
+        visibleExtranet:
+          type: boolean
+        datePartage:
+          type: string
+          format: date-time
+          nullable: true
+        isNew:
+          type: boolean
+          description: Non consulté par l'utilisateur courant
+        createdAt:
+          type: string
+          format: date-time
+
+    PreferencesNotification:
+      type: object
+      properties:
+        emailNouveauxDocuments:
+          type: boolean
+          default: true
+
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase Auth ID Token avec Custom Claims
+
+security:
+  - firebaseAuth: []
+
+tags:
+  - name: Invitations
+    description: Gestion des invitations extranet (syndic → copropriétaire)
+  - name: Extranet - Finances
+    description: Consultation solde et paiements (copropriétaire)
+  - name: Extranet - Documents
+    description: Consultation documents partagés (copropriétaire)
+  - name: Extranet - Préférences
+    description: Gestion des préférences utilisateur (copropriétaire)
+  - name: Syndic - Documents
+    description: Gestion des documents (syndic)

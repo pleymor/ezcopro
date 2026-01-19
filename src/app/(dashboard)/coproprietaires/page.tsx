@@ -1,18 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { CoproprietaireCard } from '@/components/coproprietaires/CoproprietaireCard';
-import { InvitationModal } from '@/components/coproprietaires/InvitationModal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   subscribeToCoproprietaires,
   anonymizeCoproprietaire,
 } from '@/lib/firebase/services/coproprietaire';
 import { getLotsByCoproprietaire } from '@/lib/firebase/services/lot';
+import { createInvitationExtranet } from '@/lib/firebase/services/invitation-extranet';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useCoproId } from '@/lib/hooks/useCoproId';
 import type { Coproprietaire } from '@/types/coproprietaire';
@@ -26,9 +26,19 @@ export default function CoproprietairesPage() {
   const [lotsMap, setLotsMap] = useState<Record<string, Lot[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteTarget, setInviteTarget] = useState<Coproprietaire | null>(null);
   const [anonymizeTarget, setAnonymizeTarget] = useState<Coproprietaire | null>(null);
   const [isAnonymizing, setIsAnonymizing] = useState(false);
+
+  // Handler pour inviter un copropriétaire sur l'extranet
+  const handleInviteExtranet = useCallback(async (coproprietaireId: string, email: string) => {
+    if (!selectedCopro || !user) {
+      throw new Error('Copropriété ou utilisateur non défini');
+    }
+    await createInvitationExtranet(selectedCopro.id, {
+      email,
+      coproprietaireId,
+    }, user.uid);
+  }, [selectedCopro, user]);
 
   useEffect(() => {
     if (!coproId) return;
@@ -115,20 +125,11 @@ export default function CoproprietairesPage() {
               key={cp.id}
               coproprietaire={cp}
               lots={lotsMap[cp.id] || []}
-              onInvite={() => setInviteTarget(cp)}
+              onInviteExtranet={(email) => handleInviteExtranet(cp.id, email)}
               onAnonymize={() => setAnonymizeTarget(cp)}
             />
           ))}
         </div>
-      )}
-
-      {inviteTarget && selectedCopro && (
-        <InvitationModal
-          coproId={selectedCopro.id}
-          coproprietaire={inviteTarget}
-          open={!!inviteTarget}
-          onOpenChange={() => setInviteTarget(null)}
-        />
       )}
 
       <ConfirmDialog
