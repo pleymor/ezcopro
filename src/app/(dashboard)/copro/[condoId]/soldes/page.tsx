@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { ErrorMessage } from '@/components/ui/error-message';
@@ -11,7 +11,6 @@ import { subscribeToLots } from '@/lib/firebase/services/lot';
 import { subscribeToPaiements } from '@/lib/firebase/services/paiement';
 import {
   calculateSoldesByCoproprietaire,
-  calculateSoldeGlobal,
   filterSoldes,
   type SoldeCoproprietaire,
   type SoldeFilter,
@@ -75,7 +74,6 @@ export default function SoldesPage() {
   }, [condoId, coproprietaires, lots, paiements]);
 
   const filteredSoldes = useMemo(() => filterSoldes(soldes, filter), [soldes, filter]);
-  const soldeGlobal = useMemo(() => calculateSoldeGlobal(soldes), [soldes]);
 
   const stats = useMemo(() => {
     const enRetard = soldes.filter((s) => s.soldeCents > 0).length;
@@ -105,55 +103,6 @@ export default function SoldesPage() {
           <ErrorMessage message={error} onRetry={() => setError(null)} />
         </div>
       )}
-
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total appelé
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(soldeGlobal.totalAppeleCents)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total payé
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(soldeGlobal.totalPayeCents)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Solde global
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className={cn(
-                'text-2xl font-bold',
-                soldeGlobal.soldeCents > 0 ? 'text-destructive' : 'text-green-600'
-              )}
-            >
-              {formatCurrency(soldeGlobal.soldeCents)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.enRetard} en retard, {stats.aJour} à jour
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="mb-4 flex gap-2" role="group" aria-label="Filtres">
         <Button
@@ -202,8 +151,6 @@ export default function SoldesPage() {
                 <thead>
                   <tr className="border-b text-left text-sm text-muted-foreground">
                     <th className="px-4 py-3">Copropriétaire</th>
-                    <th className="px-4 py-3 text-right">Dû</th>
-                    <th className="px-4 py-3 text-right">Payé</th>
                     <th className="px-4 py-3 text-right">Solde</th>
                     <th className="px-4 py-3 w-10"></th>
                   </tr>
@@ -229,12 +176,6 @@ export default function SoldesPage() {
                             </div>
                           </div>
                         </Link>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {formatCurrency(solde.totalDuCents)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-green-600">
-                        {formatCurrency(solde.totalPayeCents)}
                       </td>
                       <td
                         className={cn(

@@ -95,7 +95,14 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
   const navItems: NavItem[] = useMemo(
     () => [
       { path: condoPaths.dashboard(condoId), label: 'Accueil', icon: Home },
-      { path: condoPaths.coproprietaires(condoId), label: 'Copropriétaires', icon: Users },
+      {
+        path: condoPaths.coproprietaires(condoId),
+        label: 'Copropriétaires',
+        icon: Users,
+        subItems: [
+          { path: condoPaths.soldes(condoId), label: 'Soldes', icon: PiggyBank },
+        ],
+      },
       {
         path: condoPaths.lots(condoId),
         label: 'Lots',
@@ -106,7 +113,6 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
         ],
       },
       { path: condoPaths.finances(condoId), label: 'Finances', icon: Wallet, requiresCoproprietaires: true },
-      { path: condoPaths.soldes(condoId), label: 'Soldes', icon: PiggyBank, requiresCoproprietaires: true },
       { path: condoPaths.documents(condoId), label: 'Documents', icon: FileText },
       { path: condoPaths.assembleesGenerales(condoId), label: 'AG', icon: Vote, requiresCoproprietaires: true },
       { path: condoPaths.historique(condoId), label: 'Historique', icon: History },
