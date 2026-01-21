@@ -40,7 +40,7 @@ function getStoredCondoId(): string | null {
 }
 
 export function CondoProvider({ children }: CondoProviderProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [condos, setCondos] = useState<Condo[]>([]);
   // Initialize with localStorage (accepts hydration mismatch as intentional)
   const [selectedCondo, setSelectedCondoState] = useState<Condo | null>(() => getStoredCondo());
@@ -61,12 +61,15 @@ export function CondoProvider({ children }: CondoProviderProps) {
 
   const fetchCondos = useCallback(async () => {
     if (!user) {
+      // Don't set loading=false here - wait for auth to complete
+      // This prevents a race condition where loading becomes false
+      // before we've had a chance to fetch with a valid user
       setCondos([]);
       setSelectedCondoState(null);
-      setLoading(false);
       return;
     }
 
+    setLoading(true);
     setError(null);
 
     try {
@@ -103,7 +106,7 @@ export function CondoProvider({ children }: CondoProviderProps) {
     condos,
     selectedCondo,
     setSelectedCondo,
-    loading: loading && !selectedCondo, // No loading if we already have a condo
+    loading: authLoading || loading,
     error,
     refresh: fetchCondos,
   };

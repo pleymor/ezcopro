@@ -29,9 +29,10 @@ export default function CondoLayout({
     prevCondoIdRef.current = condoId;
   }, [condoId, refresh]);
 
-  // Redirect to condo selector if no access
+  // Redirect to condo selector if no access (only after condos are fully loaded)
   useEffect(() => {
-    if (!loading && !hasAccess) {
+    if (loading) return;
+    if (!hasAccess) {
       router.replace('/copro');
     }
   }, [loading, hasAccess, router]);
