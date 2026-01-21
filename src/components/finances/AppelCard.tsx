@@ -5,14 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { AppelDeFonds } from '@/types/appel';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
+import { condoPaths } from '@/lib/utils/condo-routes';
 import { Calendar, Trash2, Eye } from 'lucide-react';
 
 interface AppelCardProps {
   appel: AppelDeFonds;
-  onDelete: () => void;
+  condoId: string;
+  onDelete?: () => void;
+  isEditable?: boolean;
 }
 
-export function AppelCard({ appel, onDelete }: AppelCardProps) {
+export function AppelCard({ appel, condoId, onDelete, isEditable = true }: AppelCardProps) {
   const isEchu = new Date(appel.dateEcheance.seconds * 1000) < new Date();
 
   return (
@@ -33,20 +36,22 @@ export function AppelCard({ appel, onDelete }: AppelCardProps) {
             </span>
           </div>
           <div className="flex gap-2">
-            <Link href={`/finances/appels/${appel.id}`}>
+            <Link href={condoPaths.appelDetail(condoId, appel.id)}>
               <Button variant="outline" size="sm">
                 <Eye className="mr-2 h-4 w-4" />
                 Détails
               </Button>
             </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {isEditable && onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

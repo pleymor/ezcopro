@@ -5,14 +5,16 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, FileText, CheckCircle2 } from 'lucide-react';
+import { condoPaths } from '@/lib/utils/condo-routes';
 import type { AssembleeGenerale } from '@/types/assemblee-generale';
 import { agTypeLabels } from '@/lib/schemas/assemblee-generale';
 
 interface AGHistoryListProps {
   ags: AssembleeGenerale[];
+  condoId: string;
 }
 
-export function AGHistoryList({ ags }: AGHistoryListProps) {
+export function AGHistoryList({ ags, condoId }: AGHistoryListProps) {
   // Filter only terminated AGs and sort by date descending
   const terminatedAGs = ags
     .filter((ag) => ag.statut === 'terminee')
@@ -40,7 +42,7 @@ export function AGHistoryList({ ags }: AGHistoryListProps) {
         return (
           <Link
             key={ag.id}
-            href={`/assemblees-generales/${ag.id}` as '/assemblees-generales/[agId]'}
+            href={condoPaths.agDetail(condoId, ag.id)}
           >
             <Card className="hover:bg-accent/50 transition-colors">
               <CardHeader className="pb-2">
