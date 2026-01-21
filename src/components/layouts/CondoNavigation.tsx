@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useCondo } from '@/lib/hooks/useCondo';
 import { getAllAcceptedInvitationsForUser } from '@/lib/firebase/services/invitation-extranet';
-import { subscribeToOwners } from '@/lib/firebase/services/owner';
 import { condoPath, condoPaths } from '@/lib/utils/condo-routes';
 import type { Condo } from '@/types/condo';
 import {
@@ -43,7 +42,6 @@ interface NavItem {
   path: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  requiresCoproprietaires?: boolean;
   subItems?: SubNavItem[];
 }
 
@@ -60,7 +58,6 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [hasExtranetAccess, setHasExtranetAccess] = useState(false);
-  const [hasOwners, setHasOwners] = useState(false);
 
   // Generate nav items with condo-scoped paths
   const navItems: NavItem[] = useMemo(
@@ -104,20 +101,6 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
         setHasExtranetAccess(false);
       });
   }, [user]);
-
-  // Check if condo has owners
-  useEffect(() => {
-    if (!condoId) {
-      setHasOwners(false);
-      return;
-    }
-
-    const unsubscribe = subscribeToOwners(condoId, (owners) => {
-      setHasOwners(owners.length > 0);
-    });
-
-    return () => unsubscribe();
-  }, [condoId]);
 
   const handleSwitchToExtranet = () => {
     router.push('/extranet');
@@ -197,19 +180,6 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
             const filteredSubItems = item.subItems ?? [];
             const hasSubItems = filteredSubItems.length > 0;
             const isExpanded = expandedItems.includes(item.path) || isSubItemActive(item);
-            const isDisabled = item.requiresCoproprietaires && !hasOwners;
-
-            if (isDisabled) {
-              return (
-                <span
-                  key={item.path}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50 cursor-not-allowed"
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </span>
-              );
-            }
 
             return (
               <div key={item.path}>
@@ -396,19 +366,6 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
               const filteredSubItems = item.subItems ?? [];
               const hasSubItems = filteredSubItems.length > 0;
               const isExpanded = expandedItems.includes(item.path) || isSubItemActive(item);
-              const isDisabled = item.requiresCoproprietaires && !hasOwners;
-
-              if (isDisabled) {
-                return (
-                  <span
-                    key={item.path}
-                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground/50 cursor-not-allowed"
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                  </span>
-                );
-              }
 
               return (
                 <div key={item.path}>
@@ -525,19 +482,6 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background md:hidden">
         {navItems.slice(0, 5).map((item) => {
           const isActive = isItemActive(item);
-          const isDisabled = item.requiresCoproprietaires && !hasOwners;
-
-          if (isDisabled) {
-            return (
-              <span
-                key={item.path}
-                className="flex flex-col items-center gap-1 p-2 text-muted-foreground/50 cursor-not-allowed"
-              >
-                <item.icon className="h-5 w-5" />
-                <span className="text-xs">{item.label}</span>
-              </span>
-            );
-          }
 
           return (
             <Link
