@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useCondo } from '@/lib/hooks/useCondo';
 import { getAllAcceptedInvitationsForUser } from '@/lib/firebase/services/invitation-extranet';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 import { condoPath, condoPaths } from '@/lib/utils/condo-routes';
 import type { Condo } from '@/types/condo';
 import {
@@ -30,7 +32,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface SubNavItem {
   path: string;
@@ -43,6 +45,7 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   subItems?: SubNavItem[];
+  requiresCoproprietaires?: boolean;
 }
 
 interface CondoNavigationProps {
@@ -58,6 +61,35 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [hasExtranetAccess, setHasExtranetAccess] = useState(false);
+  const [hasOwners, setHasOwners] = useState(false);
+  const prevCondoIdRef = useRef<string | null>(null);
+
+  // Reset hasOwners when condoId changes (before subscription updates)
+  useEffect(() => {
+    if (prevCondoIdRef.current !== condoId) {
+      setHasOwners(false);
+      prevCondoIdRef.current = condoId;
+    }
+  }, [condoId]);
+
+  // Subscribe to owners to determine if nav items should be enabled
+  useEffect(() => {
+    if (!condoId) return;
+
+    const ownersRef = collection(db, 'condos', condoId, 'owners');
+    const unsubscribe = onSnapshot(
+      ownersRef,
+      (snapshot) => {
+        setHasOwners(snapshot.docs.length > 0);
+      },
+      (error) => {
+        console.error('Error subscribing to owners:', error);
+        setHasOwners(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [condoId]);
 
   // Generate nav items with condo-scoped paths
   const navItems: NavItem[] = useMemo(
@@ -68,14 +100,15 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
         path: condoPaths.lots(condoId),
         label: 'Lots',
         icon: Building2,
+        requiresCoproprietaires: true,
         subItems: [
           { path: condoPaths.cleRepartition(condoId), label: 'Clés de répartition', icon: Key },
         ],
       },
-      { path: condoPaths.finances(condoId), label: 'Finances', icon: Wallet },
-      { path: condoPaths.soldes(condoId), label: 'Soldes', icon: PiggyBank },
+      { path: condoPaths.finances(condoId), label: 'Finances', icon: Wallet, requiresCoproprietaires: true },
+      { path: condoPaths.soldes(condoId), label: 'Soldes', icon: PiggyBank, requiresCoproprietaires: true },
       { path: condoPaths.documents(condoId), label: 'Documents', icon: FileText },
-      { path: condoPaths.assembleesGenerales(condoId), label: 'AG', icon: Vote },
+      { path: condoPaths.assembleesGenerales(condoId), label: 'AG', icon: Vote, requiresCoproprietaires: true },
       { path: condoPaths.historique(condoId), label: 'Historique', icon: History },
       { path: condoPaths.parametres(condoId), label: 'Paramètres', icon: Settings },
     ],
@@ -180,22 +213,33 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
             const filteredSubItems = item.subItems ?? [];
             const hasSubItems = filteredSubItems.length > 0;
             const isExpanded = expandedItems.includes(item.path) || isSubItemActive(item);
+            const isDisabled = item.requiresCoproprietaires && !hasOwners;
 
             return (
               <div key={item.path}>
                 <div className="flex items-center">
-                  <Link
-                    href={item.path}
-                    className={cn(
-                      'flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted'
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                  </Link>
+                  {isDisabled ? (
+                    <span
+                      className="flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground cursor-not-allowed opacity-50"
+                      title="Ajoutez d'abord des copropriétaires"
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </span>
+                  ) : (
+                    <Link
+                      href={item.path}
+                      className={cn(
+                        'flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                  )}
                   {hasSubItems && (
                     <button
                       onClick={() => toggleExpanded(item.path)}
@@ -366,23 +410,34 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
               const filteredSubItems = item.subItems ?? [];
               const hasSubItems = filteredSubItems.length > 0;
               const isExpanded = expandedItems.includes(item.path) || isSubItemActive(item);
+              const isDisabled = item.requiresCoproprietaires && !hasOwners;
 
               return (
                 <div key={item.path}>
                   <div className="flex items-center">
-                    <Link
-                      href={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        'flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-muted'
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {item.label}
-                    </Link>
+                    {isDisabled ? (
+                      <span
+                        className="flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground cursor-not-allowed opacity-50"
+                        title="Ajoutez d'abord des copropriétaires"
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                      </span>
+                    ) : (
+                      <Link
+                        href={item.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          'flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted'
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                      </Link>
+                    )}
                     {hasSubItems && (
                       <button
                         onClick={() => toggleExpanded(item.path)}
@@ -482,6 +537,19 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background md:hidden">
         {navItems.slice(0, 5).map((item) => {
           const isActive = isItemActive(item);
+          const isDisabled = item.requiresCoproprietaires && !hasOwners;
+
+          if (isDisabled) {
+            return (
+              <span
+                key={item.path}
+                className="flex flex-col items-center gap-1 p-2 text-muted-foreground opacity-50 cursor-not-allowed"
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="text-xs">{item.label}</span>
+              </span>
+            );
+          }
 
           return (
             <Link

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCondoFromUrl } from '@/lib/hooks/useCondoFromUrl';
 import { FullPageLoading } from '@/components/ui/loading';
@@ -19,6 +19,15 @@ export default function CondoLayout({
   const { condoId, currentCondo, loading, hasAccess, refresh } = useCondoFromUrl();
   const router = useRouter();
   const pathname = usePathname();
+  const prevCondoIdRef = useRef<string | null>(null);
+
+  // Refresh condos when switching to a different condo
+  useEffect(() => {
+    if (condoId && prevCondoIdRef.current && prevCondoIdRef.current !== condoId) {
+      refresh();
+    }
+    prevCondoIdRef.current = condoId;
+  }, [condoId, refresh]);
 
   // Redirect to condo selector if no access
   useEffect(() => {
@@ -53,11 +62,11 @@ export default function CondoLayout({
   }
 
   return (
-    <>
+    <div key={condoId} className="flex min-h-screen flex-col">
       <CondoNavigation condoId={condoId} condo={currentCondo} />
       <main id="main-content" className="flex-1 pb-16 md:pb-0 md:ml-64">
         {children}
       </main>
-    </>
+    </div>
   );
 }

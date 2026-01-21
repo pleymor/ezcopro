@@ -19,6 +19,8 @@ export default function DashboardLayout({
 
   // Check if we're on a condo route (has its own navigation)
   const isCondoRoute = pathname?.startsWith('/copro/') && pathname !== '/copro';
+  // /copro is the condo selector - minimal layout, no nav
+  const isCondoSelector = pathname === '/copro';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,6 +52,15 @@ export default function DashboardLayout({
     return (
       <div className="flex min-h-screen flex-col">
         {children}
+      </div>
+    );
+  }
+
+  // Condo selector has minimal layout (no nav)
+  if (isCondoSelector) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <main id="main-content" className="flex-1">{children}</main>
       </div>
     );
   }
