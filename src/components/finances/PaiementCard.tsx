@@ -5,15 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Paiement } from '@/types/paiement';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
+import { condoPaths } from '@/lib/utils/condo-routes';
 import { Calendar, Trash2, Pencil, User } from 'lucide-react';
 
 interface PaiementCardProps {
   paiement: Paiement;
+  condoId: string;
   coproprietaireNom: string;
-  onDelete: () => void;
+  onDelete?: () => void;
+  isEditable?: boolean;
 }
 
-export function PaiementCard({ paiement, coproprietaireNom, onDelete }: PaiementCardProps) {
+export function PaiementCard({ paiement, condoId, coproprietaireNom, onDelete, isEditable = true }: PaiementCardProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -38,22 +41,26 @@ export function PaiementCard({ paiement, coproprietaireNom, onDelete }: Paiement
               <div className="text-xs">Réf: {paiement.reference}</div>
             )}
           </div>
-          <div className="flex gap-2">
-            <Link href={`/finances/paiements/${paiement.id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Pencil className="mr-2 h-4 w-4" />
-                Modifier
-              </Button>
-            </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          {isEditable && (
+            <div className="flex gap-2">
+              <Link href={condoPaths.paiementEdit(condoId, paiement.id)}>
+                <Button variant="outline" size="sm">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Modifier
+                </Button>
+              </Link>
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDelete}
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

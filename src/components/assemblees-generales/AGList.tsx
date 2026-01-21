@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Calendar, MapPin, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AGStatusBadge } from './AGStatusBadge';
+import { condoPaths } from '@/lib/utils/condo-routes';
 import type { AssembleeGenerale } from '@/types/assemblee-generale';
 
 const AG_TYPE_LABELS = {
@@ -14,6 +15,7 @@ const AG_TYPE_LABELS = {
 
 interface AGListProps {
   ags: AssembleeGenerale[];
+  condoId: string;
   emptyMessage?: string;
 }
 
@@ -40,7 +42,7 @@ function formatDate(date: FirestoreTimestamp | Date | { toDate: () => Date }): s
   });
 }
 
-export function AGList({ ags, emptyMessage = 'Aucune assemblée générale.' }: AGListProps) {
+export function AGList({ ags, condoId, emptyMessage = 'Aucune assemblée générale.' }: AGListProps) {
   if (ags.length === 0) {
     return (
       <Card>
@@ -60,7 +62,7 @@ export function AGList({ ags, emptyMessage = 'Aucune assemblée générale.' }: 
       {sortedAGs.map((ag) => (
         <Link
           key={ag.id}
-          href={`/assemblees-generales/${ag.id}`}
+          href={condoPaths.agDetail(condoId, ag.id)}
           className="block transition-colors"
         >
           <Card className="hover:bg-accent/50">
