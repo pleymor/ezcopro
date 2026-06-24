@@ -11,9 +11,24 @@ jobs:
 
     steps:
       - name: Dispatch to ezcopro-infra
+        env:
+          # Pass GitHub context via env (not inline ${{ }} in the script) so that
+          # special characters in the commit message — quotes, parentheses,
+          # newlines — can't break the shell or inject commands.
+          INFRA_REPO_PAT: ${{ secrets.INFRA_REPO_PAT }}
+          REF: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.INFRA_REPO_PAT }}" \
+          # Build the JSON payload with jq so every value is correctly escaped.
+          payload=$(jq -n \
+            --arg ref "$REF" \
+            --arg sha "$SHA" \
+            --arg message "$MESSAGE" \
+            '{event_type: "deploy-pwa", client_payload: {ref: $ref, sha: $sha, message: $message}}')
+
+          curl -X POST --fail-with-body \
+            -H "Authorization: token $INFRA_REPO_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/pleymor/ezcopro-infra/dispatches \
-            -d '{"event_type":"deploy-pwa","client_payload":{"ref":"${{ github.ref_name }}","sha":"${{ github.sha }}","message":${{ toJson(github.event.head_commit.message) }}}}'
+            -d "$payload"
