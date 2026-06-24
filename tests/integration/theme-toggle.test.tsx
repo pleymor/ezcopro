@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { ReactNode } from 'react'
+import { ReactNode, type JSX } from 'react'
 
 // Mock localStorage
 const localStorageMock = (() => {

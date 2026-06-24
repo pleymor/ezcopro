@@ -10,4 +10,6 @@ export {
   invitationExtranetSchema,
   createInvitationInputSchema,
   acceptInvitationInputSchema,
+  statutInvitationExtranetLabels,
+  statutInvitationExtranetColors,
 } from '@/lib/schemas/invitation-extranet';

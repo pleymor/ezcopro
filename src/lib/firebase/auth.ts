@@ -4,6 +4,8 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged as firebaseOnAuthStateChanged,
   getIdTokenResult as firebaseGetIdTokenResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   User as FirebaseUser,
   IdTokenResult,
 } from 'firebase/auth';
@@ -79,4 +81,47 @@ export const getIdTokenResult = async (forceRefresh = false): Promise<IdTokenRes
   const firebaseUser = auth?.currentUser;
   if (!firebaseUser) return null;
   return firebaseGetIdTokenResult(firebaseUser, forceRefresh);
+};
+
+/**
+ * Crée un compte avec email et mot de passe
+ */
+export const createAccountWithEmail = async (
+  email: string,
+  password: string
+): Promise<AuthUser> => {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  return {
+    uid: result.user.uid,
+    email: result.user.email,
+    displayName: result.user.displayName,
+    photoURL: result.user.photoURL,
+  };
+};
+
+/**
+ * Connecte un utilisateur avec email et mot de passe
+ */
+export const signInWithEmail = async (
+  email: string,
+  password: string
+): Promise<AuthUser> => {
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  return {
+    uid: result.user.uid,
+    email: result.user.email,
+    displayName: result.user.displayName,
+    photoURL: result.user.photoURL,
+  };
+};
+
+/**
+ * Supprime le compte de l'utilisateur actuellement connecté
+ */
+export const deleteCurrentAccount = async (): Promise<void> => {
+  const firebaseUser = auth?.currentUser;
+  if (!firebaseUser) {
+    throw new Error('Aucun utilisateur connecté');
+  }
+  await firebaseUser.delete();
 };

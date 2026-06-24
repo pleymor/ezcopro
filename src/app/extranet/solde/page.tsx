@@ -26,7 +26,7 @@ export default function SoldeDetailPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         <ErrorMessage message={error.message} onRetry={refresh} />
       </div>
     );
@@ -34,14 +34,14 @@ export default function SoldeDetailPage() {
 
   if (!data) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         <p className="text-muted-foreground">Aucune donnée disponible</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto max-w-4xl px-4 py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

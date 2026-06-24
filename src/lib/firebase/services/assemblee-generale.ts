@@ -45,7 +45,7 @@ export async function getAssembleesGenerales(coproId: string): Promise<Assemblee
   }
 
   const agQuery = query(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales'),
+    collection(db, 'condos', coproId, 'meetings'),
     orderBy('date', 'desc')
   );
   const snapshot = await getDocs(agQuery);
@@ -72,7 +72,7 @@ export function subscribeToAssembleesGenerales(
   }
 
   const agQuery = query(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales'),
+    collection(db, 'condos', coproId, 'meetings'),
     orderBy('date', 'desc')
   );
 
@@ -96,7 +96,7 @@ export async function getAssembleeGenerale(
     return mockStore.assembleesGenerales.find((ag) => ag.id === agId) || null;
   }
 
-  const agRef = doc(db, 'coproprietes', coproId, 'assemblees-generales', agId);
+  const agRef = doc(db, 'condos', coproId, 'meetings', agId);
   const agDoc = await getDoc(agRef);
 
   if (!agDoc.exists()) {
@@ -120,7 +120,7 @@ export function subscribeToAssembleeGenerale(
     return () => {};
   }
 
-  const agRef = doc(db, 'coproprietes', coproId, 'assemblees-generales', agId);
+  const agRef = doc(db, 'condos', coproId, 'meetings', agId);
 
   return onSnapshot(agRef, (snapshot) => {
     if (!snapshot.exists()) {
@@ -163,7 +163,7 @@ export async function createAssembleeGenerale(
     return ag;
   }
 
-  const agRef = doc(collection(db, 'coproprietes', coproId, 'assemblees-generales'));
+  const agRef = doc(collection(db, 'condos', coproId, 'meetings'));
 
   const ag = {
     id: agRef.id,
@@ -234,7 +234,7 @@ export async function updateAssembleeGenerale(
     return;
   }
 
-  const agRef = doc(db, 'coproprietes', coproId, 'assemblees-generales', agId);
+  const agRef = doc(db, 'condos', coproId, 'meetings', agId);
   const agDoc = await getDoc(agRef);
 
   if (!agDoc.exists()) {
@@ -300,7 +300,7 @@ export async function deleteAssembleeGenerale(
     return;
   }
 
-  const agRef = doc(db, 'coproprietes', coproId, 'assemblees-generales', agId);
+  const agRef = doc(db, 'condos', coproId, 'meetings', agId);
   const agDoc = await getDoc(agRef);
 
   if (!agDoc.exists()) {
@@ -369,7 +369,7 @@ export async function transitionAGStatus(
     return;
   }
 
-  const agRef = doc(db, 'coproprietes', coproId, 'assemblees-generales', agId);
+  const agRef = doc(db, 'condos', coproId, 'meetings', agId);
   const agDoc = await getDoc(agRef);
 
   if (!agDoc.exists()) {

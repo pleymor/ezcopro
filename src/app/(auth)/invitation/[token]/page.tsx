@@ -11,6 +11,7 @@ import {
   validateInvitationExtranet,
   acceptInvitation,
 } from '@/lib/firebase/services/invitation-extranet';
+import { createAccountWithEmail, signInWithEmail } from '@/lib/firebase/auth';
 import type { InvitationExtranet } from '@/types/invitation-extranet';
 
 type InvitationState =
@@ -64,15 +65,24 @@ export default function InvitationPage() {
     checkInvitation();
   }, [token]);
 
-  const handleAccept = async (_password: string) => {
+  const handleAccept = async (password: string) => {
     if (state.status !== 'valid') return;
 
-    // TODO: Créer le compte Firebase Auth avec email/password
-    // Pour l'instant, on simule l'acceptation
-    // La Cloud Function settera les custom claims
+    // Créer le compte Firebase Auth avec email/password
+    const user = await createAccountWithEmail(state.invitation.email, password);
 
-    // Marquer l'invitation comme acceptée
-    await acceptInvitation(state.invitation.id, 'new-user-id');
+    // Marquer l'invitation comme acceptée avec le vrai UID
+    await acceptInvitation(state.invitation.id, user.uid);
+  };
+
+  const handleSignIn = async (password: string) => {
+    if (state.status !== 'valid') return;
+
+    // Se connecter avec le compte existant
+    const user = await signInWithEmail(state.invitation.email, password);
+
+    // Marquer l'invitation comme acceptée avec le UID existant
+    await acceptInvitation(state.invitation.id, user.uid);
   };
 
   if (state.status === 'loading') {
@@ -149,6 +159,7 @@ export default function InvitationPage() {
     <InvitationAcceptForm
       email={state.invitation.email}
       onAccept={handleAccept}
+      onSignIn={handleSignIn}
     />
   );
 }

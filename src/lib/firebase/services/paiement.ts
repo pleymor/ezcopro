@@ -30,7 +30,7 @@ export async function getPaiements(coproId: string): Promise<Paiement[]> {
   }
 
   const paiementsQuery = query(
-    collection(db, 'coproprietes', coproId, 'paiements'),
+    collection(db, 'condos', coproId, 'payments'),
     orderBy('datePaiement', 'desc')
   );
   const snapshot = await getDocs(paiementsQuery);
@@ -56,7 +56,7 @@ export function subscribeToPaiements(
   }
 
   const paiementsQuery = query(
-    collection(db, 'coproprietes', coproId, 'paiements'),
+    collection(db, 'condos', coproId, 'payments'),
     orderBy('datePaiement', 'desc')
   );
 
@@ -77,7 +77,7 @@ export async function getPaiement(coproId: string, paiementId: string): Promise<
     return mockStore.paiements.find(p => p.id === paiementId) || null;
   }
 
-  const paiementRef = doc(db, 'coproprietes', coproId, 'paiements', paiementId);
+  const paiementRef = doc(db, 'condos', coproId, 'payments', paiementId);
   const paiementDoc = await getDoc(paiementRef);
 
   if (!paiementDoc.exists()) {
@@ -101,7 +101,7 @@ export async function getPaiementsByCoproprietaire(
   }
 
   const paiementsQuery = query(
-    collection(db, 'coproprietes', coproId, 'paiements'),
+    collection(db, 'condos', coproId, 'payments'),
     where('coproprietaireId', '==', coproprietaireId),
     orderBy('datePaiement', 'desc')
   );
@@ -130,7 +130,7 @@ export function subscribeToPaiementsByCoproprietaire(
   }
 
   const paiementsQuery = query(
-    collection(db, 'coproprietes', coproId, 'paiements'),
+    collection(db, 'condos', coproId, 'payments'),
     where('coproprietaireId', '==', coproprietaireId),
     orderBy('datePaiement', 'desc')
   );
@@ -169,7 +169,7 @@ export async function createPaiement(
     return paiement;
   }
 
-  const paiementRef = doc(collection(db, 'coproprietes', coproId, 'paiements'));
+  const paiementRef = doc(collection(db, 'condos', coproId, 'payments'));
   const now = serverTimestamp();
 
   const paiement = {
@@ -224,7 +224,7 @@ export async function updatePaiement(
     return;
   }
 
-  const paiementRef = doc(db, 'coproprietes', coproId, 'paiements', paiementId);
+  const paiementRef = doc(db, 'condos', coproId, 'payments', paiementId);
   const paiementDoc = await getDoc(paiementRef);
 
   if (!paiementDoc.exists()) {
@@ -282,7 +282,7 @@ export async function deletePaiement(
     return;
   }
 
-  const paiementRef = doc(db, 'coproprietes', coproId, 'paiements', paiementId);
+  const paiementRef = doc(db, 'condos', coproId, 'payments', paiementId);
   const paiementDoc = await getDoc(paiementRef);
 
   if (!paiementDoc.exists()) {

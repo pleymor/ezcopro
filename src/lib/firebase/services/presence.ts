@@ -31,7 +31,7 @@ export async function getPresences(coproId: string, agId: string): Promise<Prese
   }
 
   const presQuery = query(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales', agId, 'presences'),
+    collection(db, 'condos', coproId, 'meetings', agId, 'attendances'),
     orderBy('nom', 'asc')
   );
   const snapshot = await getDocs(presQuery);
@@ -59,7 +59,7 @@ export function subscribeToPresences(
   }
 
   const presQuery = query(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales', agId, 'presences'),
+    collection(db, 'condos', coproId, 'meetings', agId, 'attendances'),
     orderBy('nom', 'asc')
   );
 
@@ -129,7 +129,7 @@ export async function initializePresences(
 
   withTantiemes.forEach((cp) => {
     const presRef = doc(
-      collection(db, 'coproprietes', coproId, 'assemblees-generales', agId, 'presences')
+      collection(db, 'condos', coproId, 'meetings', agId, 'attendances')
     );
 
     const presence = {
@@ -218,11 +218,11 @@ export async function updatePresence(
 
   const presRef = doc(
     db,
-    'coproprietes',
+    'condos',
     coproId,
-    'assemblees-generales',
+    'meetings',
     agId,
-    'presences',
+    'attendances',
     presenceId
   );
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useUserRole } from './useUserRole';
+import { useExtranetCondo } from './useExtranetCondo';
 import { subscribeToPaiements } from '@/lib/firebase/services/paiement';
 import type { Paiement } from '@/types/paiement';
 import { IS_TEST_MODE } from '@/lib/test/mock-data';
@@ -36,7 +36,9 @@ interface UseExtranetPaiementsResult {
  * Permet de filtrer par période.
  */
 export function useExtranetPaiements(): UseExtranetPaiementsResult {
-  const { coproprieteId, coproprietaireId, loading: roleLoading } = useUserRole();
+  const { selectedCondo, loading: condoLoading } = useExtranetCondo();
+  const coproprieteId = selectedCondo?.coproprieteId ?? null;
+  const coproprietaireId = selectedCondo?.coproprietaireId ?? null;
   const [allPaiements, setAllPaiements] = useState<Paiement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -47,7 +49,7 @@ export function useExtranetPaiements(): UseExtranetPaiementsResult {
 
   // Charger les paiements
   useEffect(() => {
-    if (roleLoading) return;
+    if (condoLoading) return;
 
     if (!coproprieteId || !coproprietaireId) {
       setAllPaiements([]);
@@ -76,7 +78,7 @@ export function useExtranetPaiements(): UseExtranetPaiementsResult {
     });
 
     return () => unsubscribe();
-  }, [coproprieteId, coproprietaireId, roleLoading]);
+  }, [coproprieteId, coproprietaireId, condoLoading]);
 
   // Convertir et trier les paiements
   const paiements = useMemo((): PaiementExtranet[] => {
@@ -134,7 +136,7 @@ export function useExtranetPaiements(): UseExtranetPaiementsResult {
     filteredPaiements,
     totalPaiements,
     totalMontantCents,
-    loading: loading || roleLoading,
+    loading: loading || condoLoading,
     error,
     period,
     setPeriod,

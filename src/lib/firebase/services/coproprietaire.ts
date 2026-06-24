@@ -16,6 +16,9 @@ import type { Coproprietaire, CreateCoproprietaireInput, UpdateCoproprietaireInp
 import { createHistoriqueEntry } from './historique';
 import { IS_TEST_MODE, mockStore, generateTestId, createMockTimestamp } from '@/lib/test/mock-data';
 
+// Collection path: condos/{condoId}/owners
+const OWNERS_SUBCOLLECTION = 'owners';
+
 /**
  * Récupère tous les copropriétaires d'une copropriété
  */
@@ -25,7 +28,7 @@ export async function getCoproprietaires(coproId: string): Promise<Coproprietair
   }
 
   const cpQuery = query(
-    collection(db, 'coproprietes', coproId, 'coproprietaires'),
+    collection(db, 'condos', coproId, OWNERS_SUBCOLLECTION),
     orderBy('nom', 'asc')
   );
   const snapshot = await getDocs(cpQuery);
@@ -49,7 +52,7 @@ export function subscribeToCoproprietaires(
   }
 
   const cpQuery = query(
-    collection(db, 'coproprietes', coproId, 'coproprietaires'),
+    collection(db, 'condos', coproId, OWNERS_SUBCOLLECTION),
     orderBy('nom', 'asc')
   );
 
@@ -73,7 +76,7 @@ export async function getCoproprietaire(
     return mockStore.coproprietaires.find(cp => cp.id === coproprietaireId) || null;
   }
 
-  const cpRef = doc(db, 'coproprietes', coproId, 'coproprietaires', coproprietaireId);
+  const cpRef = doc(db, 'condos', coproId, OWNERS_SUBCOLLECTION, coproprietaireId);
   const cpDoc = await getDoc(cpRef);
 
   if (!cpDoc.exists()) {
@@ -109,7 +112,7 @@ export async function createCoproprietaire(
     return coproprietaire;
   }
 
-  const cpRef = doc(collection(db, 'coproprietes', coproId, 'coproprietaires'));
+  const cpRef = doc(collection(db, 'condos', coproId, OWNERS_SUBCOLLECTION));
   const now = serverTimestamp();
 
   const coproprietaire = {
@@ -164,7 +167,7 @@ export async function updateCoproprietaire(
     return;
   }
 
-  const cpRef = doc(db, 'coproprietes', coproId, 'coproprietaires', coproprietaireId);
+  const cpRef = doc(db, 'condos', coproId, OWNERS_SUBCOLLECTION, coproprietaireId);
   const cpDoc = await getDoc(cpRef);
 
   if (!cpDoc.exists()) {
@@ -216,7 +219,7 @@ export async function anonymizeCoproprietaire(
     return;
   }
 
-  const cpRef = doc(db, 'coproprietes', coproId, 'coproprietaires', coproprietaireId);
+  const cpRef = doc(db, 'condos', coproId, OWNERS_SUBCOLLECTION, coproprietaireId);
   const cpDoc = await getDoc(cpRef);
 
   if (!cpDoc.exists()) {

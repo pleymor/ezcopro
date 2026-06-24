@@ -9,6 +9,9 @@ export const coproprietaireSchema = z.object({
   telephone: optionalPhoneSchema,
   userId: firestoreIdSchema.nullable(),
   isAnonymized: z.boolean(),
+  isBoardMember: z.boolean().optional(),
+  isPresident: z.boolean().optional(),
+  dateNominationConseil: timestampSchema.nullable().optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

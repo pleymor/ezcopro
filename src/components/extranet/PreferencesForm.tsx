@@ -56,7 +56,7 @@ export function PreferencesForm({
                   Nouveaux documents
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Recevoir un email lorsqu'un nouveau document est partagé par le syndic
+                  Recevoir un email lorsqu&apos;un nouveau document est partagé par le syndic
                 </p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export function PreferencesForm({
         <CardContent className="text-sm text-muted-foreground space-y-3">
           <p>
             Les notifications par email vous permettent de rester informé des nouveautés
-            de votre copropriété sans avoir à consulter régulièrement l'extranet.
+            de votre copropriété sans avoir à consulter régulièrement l&apos;extranet.
           </p>
           <p>
             Vous pouvez modifier vos préférences à tout moment. Les changements sont

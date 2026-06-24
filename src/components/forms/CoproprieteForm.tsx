@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { coproprieteFormSchema, type CoproprieteFormData } from '@/lib/schemas/copropriete';
-import { createCopropriete } from '@/lib/firebase/services/copropriete';
+import { createCondo } from '@/lib/firebase/services/condo';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCondo } from '@/lib/hooks/useCondo';
 import { useState } from 'react';
 
 interface CoproprieteFormProps {
@@ -18,7 +18,7 @@ interface CoproprieteFormProps {
 
 export function CoproprieteForm({ onSuccess }: CoproprieteFormProps) {
   const { user } = useAuth();
-  const { refresh } = useCopropriete();
+  const { refresh, setSelectedCondo } = useCondo();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -34,8 +34,12 @@ export function CoproprieteForm({ onSuccess }: CoproprieteFormProps) {
 
     setError(null);
     try {
-      await createCopropriete(user.uid, user.email || '', data);
+      const condo = await createCondo(user.uid, {
+        name: data.nom,
+        address: data.adresse,
+      });
       await refresh();
+      setSelectedCondo(condo);
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');

@@ -91,6 +91,8 @@ export const TEST_DOCUMENTS_PARTAGES: DocumentPartage[] = [
     storagePath: `coproprietes/${TEST_COPRO.id}/documents/pv-ag-2024.pdf`,
     categorie: 'ag' as CategorieDocument,
     visibleExtranet: true,
+    dossierId: null,
+    niveauAcces: 'tous',
     datePartage: mockTimestamp(new Date('2024-12-01')),
     consultePar: [TEST_COPROPRIETAIRES[0]?.id ?? 'test-cp-1'],
     uploadedBy: TEST_USER.uid,
@@ -105,6 +107,8 @@ export const TEST_DOCUMENTS_PARTAGES: DocumentPartage[] = [
     storagePath: `coproprietes/${TEST_COPRO.id}/documents/reglement.pdf`,
     categorie: 'reglement' as CategorieDocument,
     visibleExtranet: true,
+    dossierId: null,
+    niveauAcces: 'tous',
     datePartage: mockTimestamp(new Date('2024-01-15')),
     consultePar: [],
     uploadedBy: TEST_USER.uid,
@@ -119,6 +123,8 @@ export const TEST_DOCUMENTS_PARTAGES: DocumentPartage[] = [
     storagePath: `coproprietes/${TEST_COPRO.id}/documents/contrat-ascenseur.pdf`,
     categorie: 'contrats' as CategorieDocument,
     visibleExtranet: false, // Non visible sur l'extranet
+    dossierId: null,
+    niveauAcces: 'syndic',
     datePartage: null,
     consultePar: [],
     uploadedBy: TEST_USER.uid,
@@ -133,6 +139,8 @@ export const TEST_DOCUMENTS_PARTAGES: DocumentPartage[] = [
     storagePath: `coproprietes/${TEST_COPRO.id}/documents/devis-ravalement.xlsx`,
     categorie: 'travaux' as CategorieDocument,
     visibleExtranet: true,
+    dossierId: null,
+    niveauAcces: 'tous',
     datePartage: mockTimestamp(new Date('2024-11-15')),
     consultePar: [TEST_COPROPRIETAIRES[0]?.id ?? 'test-cp-1', TEST_COPROPRIETAIRES[1]?.id ?? 'test-cp-2'],
     uploadedBy: TEST_USER.uid,
@@ -256,8 +264,12 @@ export function createMockInvitation(
 export function createMockDocument(
   nom: string,
   categorie: CategorieDocument,
-  visibleExtranet: boolean = false
+  visibleExtranet: boolean = false,
+  dossierId: string | null = null,
+  niveauAcces: 'syndic' | 'conseil' | 'tous' = 'syndic'
 ): DocumentPartage {
+  // Determine niveauAcces based on visibleExtranet for backwards compatibility
+  const effectiveNiveauAcces = visibleExtranet ? 'tous' : niveauAcces;
   return {
     id: generateTestId(),
     nom,
@@ -266,7 +278,9 @@ export function createMockDocument(
     storagePath: `coproprietes/${TEST_COPRO.id}/documents/${nom}`,
     categorie,
     visibleExtranet,
-    datePartage: visibleExtranet ? createMockTimestamp() : null,
+    dossierId,
+    niveauAcces: effectiveNiveauAcces,
+    datePartage: visibleExtranet || effectiveNiveauAcces !== 'syndic' ? createMockTimestamp() : null,
     consultePar: [],
     uploadedBy: TEST_USER.uid,
     createdAt: createMockTimestamp(),

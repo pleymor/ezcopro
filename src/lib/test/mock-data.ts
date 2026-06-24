@@ -11,6 +11,8 @@ import type {
   Vote,
 } from '@/types/assemblee-generale';
 import type { CleRepartition } from '@/lib/schemas/cle-repartition';
+import type { Dossier } from '@/types/dossier';
+import type { DocumentPartage } from '@/types/document-partage';
 
 // Test mode check
 export const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
@@ -36,9 +38,16 @@ export const TEST_COPRO: Copropriete = {
   id: 'test-copro-123',
   nom: 'Résidence Test',
   adresse: '123 Rue du Test, 75001 Paris',
-  members: [TEST_USER.uid],
+  membres: {
+    [TEST_USER.uid]: {
+      role: 'admin',
+      email: TEST_USER.email,
+      addedAt: mockTimestamp(new Date('2024-01-01')),
+      addedBy: TEST_USER.uid,
+    },
+  },
+  memberIds: [TEST_USER.uid],
   totalTantiemes: 500,
-  createdBy: TEST_USER.uid,
   createdAt: mockTimestamp(new Date('2024-01-01')),
   updatedAt: mockTimestamp(new Date('2024-01-01')),
 };
@@ -182,12 +191,12 @@ export const TEST_CLES_REPARTITION: CleRepartition[] = [
 export const TEST_ASSEMBLEES_GENERALES: AssembleeGenerale[] = [
   {
     id: 'test-ag-1',
-    titre: 'AG Ordinaire 2024',
     type: 'ordinaire',
     date: mockTimestamp(new Date('2025-03-15')),
+    heure: '18:00',
     lieu: 'Salle de réunion',
     statut: 'brouillon',
-    convocationEnvoyee: false,
+    dateConvocation: null,
     totalTantiemes: 450,
     createdAt: mockTimestamp(new Date('2024-01-01')),
     updatedAt: mockTimestamp(new Date('2024-01-01')),
@@ -202,6 +211,142 @@ export const TEST_PRESENCES: Presence[] = [];
 
 // Test votes
 export const TEST_VOTES: Vote[] = [];
+
+// ============================================
+// GED DOSSIERS - MOCK DATA
+// ============================================
+
+// Test dossiers (folder hierarchy)
+export const TEST_DOSSIERS: Dossier[] = [
+  {
+    id: 'test-folder-1',
+    nom: 'Contrats',
+    parentId: null,
+    path: '/Contrats',
+    depth: 0,
+    niveauAcces: 'tous',
+    coproprieteId: 'test-copro-123',
+    createdAt: mockTimestamp(new Date('2024-06-01')),
+    updatedAt: mockTimestamp(new Date('2024-06-01')),
+    createdBy: 'test-user-123',
+  },
+  {
+    id: 'test-folder-2',
+    nom: 'AG',
+    parentId: null,
+    path: '/AG',
+    depth: 0,
+    niveauAcces: 'tous',
+    coproprieteId: 'test-copro-123',
+    createdAt: mockTimestamp(new Date('2024-06-01')),
+    updatedAt: mockTimestamp(new Date('2024-06-01')),
+    createdBy: 'test-user-123',
+  },
+  {
+    id: 'test-folder-3',
+    nom: 'Privé Syndic',
+    parentId: null,
+    path: '/Privé Syndic',
+    depth: 0,
+    niveauAcces: 'syndic',
+    coproprieteId: 'test-copro-123',
+    createdAt: mockTimestamp(new Date('2024-06-01')),
+    updatedAt: mockTimestamp(new Date('2024-06-01')),
+    createdBy: 'test-user-123',
+  },
+  {
+    id: 'test-folder-4',
+    nom: 'Documents Conseil',
+    parentId: null,
+    path: '/Documents Conseil',
+    depth: 0,
+    niveauAcces: 'conseil',
+    coproprieteId: 'test-copro-123',
+    createdAt: mockTimestamp(new Date('2024-06-01')),
+    updatedAt: mockTimestamp(new Date('2024-06-01')),
+    createdBy: 'test-user-123',
+  },
+  {
+    id: 'test-folder-1-sub',
+    nom: '2024',
+    parentId: 'test-folder-1',
+    path: '/Contrats/2024',
+    depth: 1,
+    niveauAcces: 'tous',
+    coproprieteId: 'test-copro-123',
+    createdAt: mockTimestamp(new Date('2024-06-15')),
+    updatedAt: mockTimestamp(new Date('2024-06-15')),
+    createdBy: 'test-user-123',
+  },
+];
+
+// Test documents with folder support
+export const TEST_DOCUMENTS: DocumentPartage[] = [
+  {
+    id: 'test-doc-1',
+    nom: 'Règlement de copropriété',
+    type: 'application/pdf',
+    taille: 1024 * 500,
+    storagePath: 'coproprietes/test-copro-123/documents/reglement.pdf',
+    categorie: 'reglement',
+    visibleExtranet: true,
+    dossierId: null,
+    niveauAcces: 'tous',
+    datePartage: mockTimestamp(new Date('2024-06-01')),
+    consultePar: [],
+    uploadedBy: 'test-user-123',
+    createdAt: mockTimestamp(new Date('2024-01-01')),
+    updatedAt: mockTimestamp(new Date('2024-06-01')),
+  },
+  {
+    id: 'test-doc-2',
+    nom: 'PV AG 2024',
+    type: 'application/pdf',
+    taille: 1024 * 250,
+    storagePath: 'coproprietes/test-copro-123/documents/pv-ag-2024.pdf',
+    categorie: 'ag',
+    visibleExtranet: true,
+    dossierId: 'test-folder-2',
+    niveauAcces: 'tous',
+    datePartage: mockTimestamp(new Date('2024-06-15')),
+    consultePar: ['test-cp-1'],
+    uploadedBy: 'test-user-123',
+    createdAt: mockTimestamp(new Date('2024-06-15')),
+    updatedAt: mockTimestamp(new Date('2024-06-15')),
+  },
+  {
+    id: 'test-doc-3',
+    nom: 'Contrat ascenseur',
+    type: 'application/pdf',
+    taille: 1024 * 150,
+    storagePath: 'coproprietes/test-copro-123/documents/contrat-ascenseur.pdf',
+    categorie: 'contrats',
+    visibleExtranet: false,
+    dossierId: 'test-folder-1-sub',
+    niveauAcces: 'syndic',
+    datePartage: null,
+    consultePar: [],
+    uploadedBy: 'test-user-123',
+    createdAt: mockTimestamp(new Date('2024-03-01')),
+    updatedAt: mockTimestamp(new Date('2024-03-01')),
+  },
+  {
+    id: 'test-doc-4',
+    nom: 'Budget prévisionnel',
+    type: 'application/pdf',
+    taille: 1024 * 200,
+    storagePath: 'coproprietes/test-copro-123/documents/budget.pdf',
+    categorie: 'autres',
+    visibleExtranet: false,
+    dossierId: 'test-folder-4',
+    niveauAcces: 'conseil',
+    datePartage: mockTimestamp(new Date('2024-07-01')),
+    consultePar: [],
+    uploadedBy: 'test-user-123',
+    createdAt: mockTimestamp(new Date('2024-07-01')),
+    updatedAt: mockTimestamp(new Date('2024-07-01')),
+  },
+];
 
 // Mock data store (mutable for tests)
 export const mockStore = {
@@ -225,6 +370,9 @@ export const mockStore = {
   resolutions: [...TEST_RESOLUTIONS] as Resolution[],
   presences: [...TEST_PRESENCES] as Presence[],
   votes: [...TEST_VOTES] as Vote[],
+  // GED - Dossiers
+  dossiers: [...TEST_DOSSIERS] as Dossier[],
+  documents: [...TEST_DOCUMENTS] as DocumentPartage[],
 };
 
 // Helper to reset mock data
@@ -240,6 +388,9 @@ export function resetMockData(): void {
   mockStore.resolutions = [...TEST_RESOLUTIONS];
   mockStore.presences = [...TEST_PRESENCES];
   mockStore.votes = [...TEST_VOTES];
+  // GED - Dossiers
+  mockStore.dossiers = [...TEST_DOSSIERS];
+  mockStore.documents = [...TEST_DOCUMENTS];
 }
 
 // Helper to generate ID

@@ -181,8 +181,8 @@ export default function ProcesVerbalPage({ params }: PageProps) {
           ag={ag}
           resolutions={resolutions}
           presences={presences}
-          coproName={currentCondo.nom}
-          coproAddress={currentCondo.adresse}
+          coproName={currentCondo.name}
+          coproAddress={currentCondo.address}
           opposantsPerResolution={opposantsPerResolution}
           defaillants={defaillants}
         />

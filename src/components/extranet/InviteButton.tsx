@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Send, Loader2, Clock, UserCheck } from 'lucide-react';
+import { Mail, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +20,8 @@ interface InviteButtonProps {
   coproprietaireId: string;
   coproprietaireNom: string;
   coproprietaireEmail: string | null;
+  linkedUserId?: string | null;
+  currentUserEmail?: string | null;
   onInvite: (email: string) => Promise<void>;
   onResend?: () => Promise<void>;
   disabled?: boolean;
@@ -33,57 +35,54 @@ export function InviteButton({
   coproprietaireId,
   coproprietaireNom,
   coproprietaireEmail,
+  linkedUserId,
+  currentUserEmail,
   onInvite,
   onResend,
   disabled = false,
 }: InviteButtonProps) {
-  const { hasPending, hasAccount, loading: statusLoading } = useInvitationStatus(coproprietaireId);
+  const { hasPending, hasAccount: hasAccountFromInvitation, loading: statusLoading } = useInvitationStatus(coproprietaireId);
+
+  // Compte actif si userId lié, invitation acceptée, ou email identique à l'utilisateur connecté
+  const emailMatchesCurrentUser = !!(currentUserEmail && coproprietaireEmail &&
+    currentUserEmail.toLowerCase() === coproprietaireEmail.toLowerCase());
+  const hasAccount = !!linkedUserId || hasAccountFromInvitation || emailMatchesCurrentUser;
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState(coproprietaireEmail || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Si le copropriétaire a déjà un compte
+  // Si le copropriétaire a déjà un compte, ne rien afficher ici
+  // (l'icône est affichée à côté du nom dans CoproprietaireCard)
   if (hasAccount) {
-    return (
-      <Button variant="ghost" size="sm" disabled className="text-green-600">
-        <UserCheck className="h-4 w-4 mr-1" />
-        Compte actif
-      </Button>
-    );
+    return null;
   }
 
-  // Si une invitation est en attente
+  // Si une invitation est en attente, afficher uniquement le bouton Renvoyer
+  // (l'icône de statut est affichée à côté du nom dans CoproprietaireCard)
   if (hasPending) {
+    if (!onResend) return null;
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground flex items-center">
-          <Clock className="h-4 w-4 mr-1" />
-          Invitation envoyée
-        </span>
-        {onResend && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => {
-              setIsSubmitting(true);
-              try {
-                await onResend();
-              } finally {
-                setIsSubmitting(false);
-              }
-            }}
-            disabled={isSubmitting || disabled}
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            Renvoyer
-          </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={async () => {
+          setIsSubmitting(true);
+          try {
+            await onResend();
+          } finally {
+            setIsSubmitting(false);
+          }
+        }}
+        disabled={isSubmitting || disabled}
+      >
+        {isSubmitting ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+        ) : (
+          <Send className="h-4 w-4 mr-1" />
         )}
-      </div>
+        Renvoyer
+      </Button>
     );
   }
 
@@ -126,7 +125,7 @@ export function InviteButton({
           ) : (
             <Mail className="h-4 w-4 mr-1" />
           )}
-          Inviter sur l&apos;extranet
+          Inviter
         </Button>
       </DialogTrigger>
       <DialogContent>

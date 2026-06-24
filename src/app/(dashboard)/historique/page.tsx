@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
@@ -70,7 +71,10 @@ export default function HistoriquePage() {
   // Charger l'historique
   const loadHistorique = useCallback(
     async (reset: boolean = false) => {
-      if (!coproId) return;
+      if (!coproId) {
+        setLoading(false);
+        return;
+      }
 
       if (reset) {
         setLoading(true);
@@ -122,7 +126,16 @@ export default function HistoriquePage() {
   }
 
   if (!selectedCopro) {
-    return <ErrorMessage message="Aucune copropriété sélectionnée" />;
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8 text-center">
+        <ErrorMessage message="Aucune copropriété sélectionnée" />
+        <Link href="/copro">
+          <Button variant="outline" className="mt-4">
+            Choisir une copropriété
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   return (

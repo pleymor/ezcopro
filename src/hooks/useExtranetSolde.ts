@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUserRole } from './useUserRole';
+import { useExtranetCondo } from './useExtranetCondo';
 import {
   getDetailSoldeCoproprietaire,
   type DetailAppel,
@@ -45,7 +45,9 @@ interface UseExtranetSoldeResult {
  * Utilise les claims Firebase pour identifier le copropriétaire.
  */
 export function useExtranetSolde(): UseExtranetSoldeResult {
-  const { coproprieteId, coproprietaireId, loading: roleLoading } = useUserRole();
+  const { selectedCondo, loading: condoLoading } = useExtranetCondo();
+  const coproprieteId = selectedCondo?.coproprieteId ?? null;
+  const coproprietaireId = selectedCondo?.coproprietaireId ?? null;
   const [data, setData] = useState<ExtranetSoldeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -72,7 +74,7 @@ export function useExtranetSolde(): UseExtranetSoldeResult {
 
   // Calculer le solde
   const fetchSolde = useCallback(async () => {
-    if (roleLoading) return;
+    if (condoLoading) return;
 
     if (!coproprieteId || !coproprietaireId) {
       setData(null);
@@ -135,7 +137,7 @@ export function useExtranetSolde(): UseExtranetSoldeResult {
     } finally {
       setLoading(false);
     }
-  }, [coproprieteId, coproprietaireId, lots, paiements, roleLoading]);
+  }, [coproprieteId, coproprietaireId, lots, paiements, condoLoading]);
 
   // Charger le solde quand les données sont prêtes
   useEffect(() => {
@@ -144,7 +146,7 @@ export function useExtranetSolde(): UseExtranetSoldeResult {
 
   return {
     data,
-    loading: loading || roleLoading,
+    loading: loading || condoLoading,
     error,
     refresh: fetchSolde,
   };

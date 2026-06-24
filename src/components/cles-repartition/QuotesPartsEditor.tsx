@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, CheckCircle, Calculator } from 'lucide-react';
+import { AlertTriangle, Calculator } from 'lucide-react';
 import type { QuotePart } from '@/lib/schemas/cle-repartition';
 import { validateQuotePartsTotal } from '@/lib/schemas/cle-repartition';
 import type { Lot } from '@/types/lot';
@@ -143,11 +143,6 @@ export function QuotesPartsEditor({
     onChange(adjusted);
   }, [lots, onChange]);
 
-  // Calculate percentage for display
-  const getPercentage = (value: number): string => {
-    return ((value / 10000) * 100).toFixed(2);
-  };
-
   // Count included lots
   const includedCount = includedLotIds.size;
 
@@ -203,9 +198,6 @@ export function QuotesPartsEditor({
               <th className="px-4 py-3 text-right text-sm font-medium">
                 Quote-part
               </th>
-              <th className="px-4 py-3 text-right text-sm font-medium hidden sm:table-cell">
-                %
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -240,9 +232,6 @@ export function QuotesPartsEditor({
                   <td className="px-4 py-3 text-sm font-medium text-right">
                     {value}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right text-muted-foreground hidden sm:table-cell">
-                    {getPercentage(value)}%
-                  </td>
                 </tr>
               );
             })}
@@ -252,34 +241,25 @@ export function QuotesPartsEditor({
               <td className="px-4 py-3 text-sm text-center text-muted-foreground">
                 {includedCount}/{lots.length}
               </td>
-              <td colSpan={4} className="px-4 py-3 text-sm font-medium text-right">
+              <td colSpan={3} className="px-4 py-3 text-sm font-medium text-right">
                 Total
               </td>
               <td className="px-4 py-3 text-sm font-bold text-right">{total}</td>
-              <td className="px-4 py-3 text-sm text-right font-medium hidden sm:table-cell">
-                {getPercentage(total)}%
-              </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      {/* Validation message */}
-      {includedCount === 0 ? (
+      {/* Validation message - only show warnings */}
+      {includedCount === 0 && (
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             Aucun lot sélectionné. Cochez au moins un lot pour cette clé de répartition.
           </AlertDescription>
         </Alert>
-      ) : isValid ? (
-        <Alert variant="default" className="border-green-500/50 bg-green-500/10">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-400">
-            Le total des quotes-parts est égal à 10000 millièmes (100%).
-          </AlertDescription>
-        </Alert>
-      ) : (
+      )}
+      {includedCount > 0 && !isValid && (
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>

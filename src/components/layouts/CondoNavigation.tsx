@@ -9,6 +9,7 @@ import { useCondo } from '@/lib/hooks/useCondo';
 import { getAllAcceptedInvitationsForUser } from '@/lib/firebase/services/invitation-extranet';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import type { Route } from 'next';
 import { condoPath, condoPaths } from '@/lib/utils/condo-routes';
 import type { Condo } from '@/types/condo';
 import {
@@ -35,13 +36,13 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface SubNavItem {
-  path: string;
+  path: Route;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 interface NavItem {
-  path: string;
+  path: Route;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   subItems?: SubNavItem[];
@@ -121,7 +122,7 @@ export function CondoNavigation({ condoId, condo }: CondoNavigationProps) {
     [condoId]
   );
 
-  const ressourcesItems = [
+  const ressourcesItems: { href: Route; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { href: '/ressources/obligations-legales', label: 'Obligations légales', icon: BookOpen },
   ];
 

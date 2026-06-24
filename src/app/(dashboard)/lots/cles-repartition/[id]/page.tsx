@@ -154,6 +154,7 @@ export default function CleRepartitionDetailPage() {
       )}
 
       <CleRepartitionDetail
+        condoId={selectedCopro.id}
         cle={cle}
         lots={lots}
         coproprietaires={coproprietaires}

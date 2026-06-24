@@ -1,11 +1,99 @@
 {
   "indexes": [
     {
-      "collectionGroup": "historique",
+      "collectionGroup": "invitationsExtranet",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "acceptedBy", "order": "ASCENDING" },
+        { "fieldPath": "statut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invitationsExtranet",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "coproprieteId", "order": "ASCENDING" },
+        { "fieldPath": "dateEnvoi", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invitationsExtranet",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "coproprietaireId", "order": "ASCENDING" },
+        { "fieldPath": "dateEnvoi", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ownerInvitations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "condoId", "order": "ASCENDING" },
+        { "fieldPath": "dateEnvoi", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ownerInvitations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "coproprietaireId", "order": "ASCENDING" },
+        { "fieldPath": "dateEnvoi", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ownerInvitations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "acceptedBy", "order": "ASCENDING" },
+        { "fieldPath": "statut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "history",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "entityType", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "folders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parentId", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "folderId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibleExtranet", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "documentsPartages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibleExtranet", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "owners",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isBoardMember", "order": "ASCENDING" },
+        { "fieldPath": "lastName", "order": "ASCENDING" }
       ]
     }
   ],

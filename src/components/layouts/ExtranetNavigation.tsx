@@ -1,9 +1,11 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useCondo } from '@/lib/hooks/useCondo';
+import { useExtranetCondo } from '@/hooks/useExtranetCondo';
 import {
   Home,
   Wallet,
@@ -12,10 +14,19 @@ import {
   Settings,
   LogOut,
   Menu,
+  Shield,
+  Building2,
+  ChevronDown,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface NavItem {
   href: string;
@@ -33,8 +44,25 @@ interface ExtranetNavigationProps {
  */
 export function ExtranetNavigation({ newDocumentsCount = 0 }: ExtranetNavigationProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, signOut } = useAuth();
+  const { condos: adminCondos } = useCondo();
+  const {
+    condos: extranetCondos,
+    selectedCondo,
+    setSelectedCondo,
+    hasMultipleCondos,
+  } = useExtranetCondo();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // User can switch to admin view if they own or manage any condo
+  const canSwitchToAdmin = user && adminCondos.some(
+    (condo) => condo.ownerId === user.uid || condo.boardMemberIds.includes(user.uid)
+  );
+
+  const handleSwitchToAdmin = () => {
+    router.push('/');
+  };
 
   const navItems: NavItem[] = [
     { href: '/extranet', label: 'Accueil', icon: Home },
@@ -68,6 +96,45 @@ export function ExtranetNavigation({ newDocumentsCount = 0 }: ExtranetNavigation
           </Badge>
         </div>
 
+        {/* Condo Selector */}
+        {selectedCondo && (
+          <div className="border-b px-3 py-3">
+            {hasMultipleCondos ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between text-left">
+                    <span className="flex items-center gap-2 truncate">
+                      <Building2 className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{selectedCondo.coproprieteName}</span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {extranetCondos.map((condo) => (
+                    <DropdownMenuItem
+                      key={condo.coproprieteId}
+                      onClick={() => setSelectedCondo(condo)}
+                      className={cn(
+                        'cursor-pointer',
+                        condo.coproprieteId === selectedCondo.coproprieteId && 'bg-muted'
+                      )}
+                    >
+                      <Building2 className="mr-2 h-4 w-4" />
+                      <span className="truncate">{condo.coproprieteName}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span className="truncate">{selectedCondo.coproprieteName}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const active = isActive(item.href);
@@ -95,7 +162,7 @@ export function ExtranetNavigation({ newDocumentsCount = 0 }: ExtranetNavigation
           })}
         </nav>
 
-        <div className="border-t p-4">
+        <div className="border-t p-4 space-y-2">
           <div className="mb-3 flex items-center justify-between">
             {user && (
               <span className="truncate text-sm text-muted-foreground">
@@ -104,6 +171,16 @@ export function ExtranetNavigation({ newDocumentsCount = 0 }: ExtranetNavigation
             )}
             <ThemeToggle />
           </div>
+          {canSwitchToAdmin && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={handleSwitchToAdmin}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Vue administration
+            </Button>
+          )}
           <Button
             variant="ghost"
             className="w-full justify-start"
@@ -116,21 +193,54 @@ export function ExtranetNavigation({ newDocumentsCount = 0 }: ExtranetNavigation
       </aside>
 
       {/* Mobile Header */}
-      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background px-4 md:hidden">
-        <a href="/extranet" className="flex items-center gap-2">
-          <span className="text-lg font-bold text-primary">EzCopro</span>
-          <Badge variant="secondary" className="text-xs">Extranet</Badge>
-        </a>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+      <header className="sticky top-0 z-50 border-b bg-background md:hidden">
+        <div className="flex h-14 items-center justify-between px-4">
+          <a href="/extranet" className="flex items-center gap-2">
+            <span className="text-lg font-bold text-primary">EzCopro</span>
+            <Badge variant="secondary" className="text-xs">Extranet</Badge>
+          </a>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
+        {/* Mobile Condo Selector */}
+        {selectedCondo && hasMultipleCondos && (
+          <div className="border-t px-4 py-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-between text-left">
+                  <span className="flex items-center gap-2 truncate">
+                    <Building2 className="h-4 w-4 shrink-0" />
+                    <span className="truncate text-xs">{selectedCondo.coproprieteName}</span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {extranetCondos.map((condo) => (
+                  <DropdownMenuItem
+                    key={condo.coproprieteId}
+                    onClick={() => setSelectedCondo(condo)}
+                    className={cn(
+                      'cursor-pointer',
+                      condo.coproprieteId === selectedCondo.coproprieteId && 'bg-muted'
+                    )}
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span className="truncate">{condo.coproprieteName}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </header>
 
       {/* Mobile Menu */}
@@ -174,6 +284,19 @@ export function ExtranetNavigation({ newDocumentsCount = 0 }: ExtranetNavigation
             })}
 
             <hr className="my-4" />
+            {canSwitchToAdmin && (
+              <Button
+                variant="outline"
+                className="w-full justify-start mb-2"
+                onClick={() => {
+                  handleSwitchToAdmin();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Vue administration
+              </Button>
+            )}
             <Button
               variant="ghost"
               className="w-full justify-start"

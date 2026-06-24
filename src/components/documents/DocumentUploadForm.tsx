@@ -246,7 +246,7 @@ export function DocumentUploadForm({
           disabled={disabled || uploading}
         />
         <Label htmlFor="visibleExtranet" className="cursor-pointer">
-          Rendre visible sur l'extranet copropriétaires
+          Rendre visible sur l&apos;extranet copropriétaires
         </Label>
       </div>
 

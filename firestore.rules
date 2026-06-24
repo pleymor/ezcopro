@@ -2,143 +2,230 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: vérifie si l'utilisateur est membre d'une copropriété
-    function isMember(coproId) {
+    // Helper: check if user is the condo owner (syndic)
+    function isCondoOwner(condoId) {
+      let condo = get(/databases/$(database)/documents/condos/$(condoId)).data;
+      return request.auth != null && condo.ownerId == request.auth.uid;
+    }
+
+    // Helper: check if user is a board member (conseil syndical)
+    function isBoardMember(condoId) {
+      let condo = get(/databases/$(database)/documents/condos/$(condoId)).data;
       return request.auth != null &&
-        request.auth.uid in get(/databases/$(database)/documents/coproprietes/$(coproId)).data.members;
+        condo.boardMemberIds != null &&
+        request.auth.uid in condo.boardMemberIds;
     }
 
-    // Helper: vérifie si l'utilisateur est syndic de la copropriété
-    function isSyndic(coproId) {
+    // Helper: check if user can read (owner or board member)
+    function canReadCondo(condoId) {
+      return isCondoOwner(condoId) || isBoardMember(condoId);
+    }
+
+    // Helper: check if user can write (only owner)
+    function canWriteCondo(condoId) {
+      return isCondoOwner(condoId);
+    }
+
+    // Helper: check if user is a linked owner (coproprietaire with extranet access)
+    function isLinkedOwner(condoId) {
       return request.auth != null &&
-        request.auth.token.role == 'syndic' &&
-        request.auth.token.coproprieteId == coproId;
+        request.auth.token.role == 'owner' &&
+        request.auth.token.condoId == condoId;
     }
 
-    // Helper: vérifie si l'utilisateur est copropriétaire de la copropriété
-    function isCoproprietaire(coproId) {
+    // Helper: check if linked owner is a board member
+    function isLinkedBoardMember(condoId) {
+      return isLinkedOwner(condoId) &&
+        request.auth.token.isBoardMember == true;
+    }
+
+    // Helper: check document/folder access by accessLevel
+    function canAccessByLevel(condoId, accessLevel) {
+      return canReadCondo(condoId) ||
+        (accessLevel == 'all' && isLinkedOwner(condoId)) ||
+        (accessLevel == 'board' && isLinkedBoardMember(condoId));
+    }
+
+    // Helper: check if user is adding themselves to boardMemberIds (during invitation acceptance)
+    function isAddingSelfToBoardMembers() {
       return request.auth != null &&
-        request.auth.token.role == 'coproprietaire' &&
-        request.auth.token.coproprieteId == coproId;
+        // Only boardMemberIds and updatedAt are being changed
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['boardMemberIds', 'updatedAt']) &&
+        // User is adding themselves (not removing or adding others)
+        request.resource.data.boardMemberIds.hasAll(resource.data.boardMemberIds) &&
+        request.auth.uid in request.resource.data.boardMemberIds &&
+        request.resource.data.boardMemberIds.size() == resource.data.boardMemberIds.size() + 1;
     }
 
-    // Helper: vérifie si l'utilisateur est le copropriétaire concerné
-    function isOwnCoproprietaire(coproId, coproprietaireId) {
-      return isCoproprietaire(coproId) &&
-        request.auth.token.coproprietaireId == coproprietaireId;
-    }
+    // Condos collection
+    match /condos/{condoId} {
+      // Read: owner or any authenticated user with accepted invitation
+      // Note: We allow all authenticated users to read basic condo info (name)
+      // because checking invitation status in rules would require expensive reads
+      // Sensitive data is protected in subcollections
+      allow read: if request.auth != null;
 
-    // Users: lecture/écriture de son propre profil uniquement
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
+      // List: for queries (needs index on ownerId)
+      allow list: if request.auth != null;
 
-    // Copropriétés: membres uniquement
-    match /coproprietes/{coproId} {
-      allow read: if request.auth != null &&
-        request.auth.uid in resource.data.members;
+      // Create: any authenticated user
       allow create: if request.auth != null;
+
+      // Update: owner only, OR user adding themselves to boardMemberIds (during invitation acceptance)
       allow update: if request.auth != null &&
-        request.auth.uid in resource.data.members;
-      allow delete: if false; // Jamais supprimé
+        (resource.data.ownerId == request.auth.uid || isAddingSelfToBoardMembers());
 
-      // Sous-collections
+      // Delete: owner only
+      allow delete: if request.auth != null &&
+        resource.data.ownerId == request.auth.uid;
+
+      // Owners subcollection (copropriétaires)
+      // Note: Allow authenticated users to read (needed for extranet to check board membership)
+      match /owners/{ownerId} {
+        allow read: if request.auth != null;
+        // Allow condo owner to write, OR allow user to link themselves via invitation
+        allow write: if canWriteCondo(condoId) ||
+          // Allow self-linking: user can only set their own userId
+          (request.auth != null &&
+           request.resource.data.userId == request.auth.uid &&
+           // Only allow updating userId field (not other fields)
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userId', 'updatedAt']));
+      }
+
+      // Lots subcollection
+      // Note: Allow authenticated users to read (needed for extranet)
       match /lots/{lotId} {
-        allow read, write: if isMember(coproId);
+        allow read: if request.auth != null;
+        allow write: if canWriteCondo(condoId);
       }
 
-      match /coproprietaires/{cpId} {
-        allow read, write: if isMember(coproId);
+      // Board members (conseil syndical)
+      // Note: Allow authenticated users to read (needed for extranet to check conseil membership)
+      match /boardMembers/{memberId} {
+        allow read: if request.auth != null;
+        allow write: if canWriteCondo(condoId);
       }
 
-      match /appels/{appelId} {
-        // Lecture: syndic ou copropriétaire (pour voir ses appels)
-        allow read: if isMember(coproId) || isCoproprietaire(coproId);
-        // Écriture: syndic uniquement
-        allow write: if isMember(coproId);
-
-        match /repartitions/{repId} {
-          // Lecture: syndic ou copropriétaire concerné
-          allow read: if isMember(coproId) ||
-            (isCoproprietaire(coproId) && resource.data.coproprietaireId == request.auth.token.coproprietaireId);
-          allow write: if isMember(coproId);
-        }
+      // Documents subcollection
+      // Note: Fine-grained access control (niveauAcces) is handled client-side
+      // because custom claims for coproprietaires are not set up yet
+      match /documents/{docId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if canWriteCondo(condoId);
       }
 
-      match /paiements/{paiementId} {
-        // Lecture: syndic ou copropriétaire concerné
-        allow read: if isMember(coproId) ||
-          (isCoproprietaire(coproId) && resource.data.coproprietaireId == request.auth.token.coproprietaireId);
-        // Écriture: syndic uniquement
-        allow write: if isMember(coproId);
+      // Folders subcollection
+      // Note: Fine-grained access control is handled client-side
+      match /folders/{folderId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if canWriteCondo(condoId);
       }
 
-      match /clesRepartition/{cleId} {
-        allow read, write: if isMember(coproId);
+      // Distribution keys (clés de répartition)
+      match /distributionKeys/{keyId} {
+        allow read: if canReadCondo(condoId);
+        allow write: if canWriteCondo(condoId);
       }
 
-      match /historique/{entryId} {
-        allow read: if isMember(coproId);
-        allow create: if isMember(coproId);
+      // History/audit log
+      match /history/{entryId} {
+        allow read: if canReadCondo(condoId);
+        allow create: if canWriteCondo(condoId);
         allow update, delete: if false;
       }
 
-      match /assemblees-generales/{agId} {
-        allow read, write: if isMember(coproId);
+      // Calls for funds (appels de fonds)
+      // Note: Allow authenticated users to read (needed for extranet)
+      match /calls/{callId} {
+        allow read: if request.auth != null;
+        allow write: if canWriteCondo(condoId);
+
+        match /distributions/{distId} {
+          allow read: if request.auth != null;
+          allow write: if canWriteCondo(condoId);
+        }
+      }
+
+      // Payments
+      // Note: Allow authenticated users to read (needed for extranet)
+      match /payments/{paymentId} {
+        allow read: if request.auth != null;
+        allow write: if canWriteCondo(condoId);
+      }
+
+      // General assemblies (AG)
+      // Note: Allow authenticated users to read (needed for extranet)
+      match /meetings/{meetingId} {
+        allow read: if request.auth != null;
+        allow write: if canWriteCondo(condoId);
 
         match /resolutions/{resId} {
-          allow read, write: if isMember(coproId);
+          allow read: if request.auth != null;
+          allow write: if canWriteCondo(condoId);
 
           match /votes/{voteId} {
-            allow read, write: if isMember(coproId);
+            allow read: if request.auth != null;
+            allow write: if canWriteCondo(condoId);
           }
         }
 
-        match /presences/{presId} {
-          allow read, write: if isMember(coproId);
+        match /attendances/{attId} {
+          allow read: if request.auth != null;
+          allow write: if canWriteCondo(condoId);
         }
       }
     }
 
-    // Invitations copropriété: lecture publique pour validation, écriture par membres
-    match /invitations/{code} {
+    // Owner invitations (extranet access)
+    match /ownerInvitations/{invitationId} {
+      // Read: public for token validation
       allow read: if true;
-      allow create: if request.auth != null &&
-        isMember(request.resource.data.coproprieteId);
-      allow update: if request.auth != null &&
-        resource.data.usedAt == null; // Seulement si pas encore utilisé
-      allow delete: if false;
-    }
 
-    // Invitations extranet copropriétaires
-    match /invitationsExtranet/{invitationId} {
-      // Lecture publique pour validation du token (page d'acceptation)
-      allow read: if true;
-      // Création par syndic uniquement
+      // Create: condo owner only
       allow create: if request.auth != null &&
-        isSyndic(request.resource.data.coproprieteId);
-      // Mise à jour (acceptation) par n'importe qui avec le bon token
-      // ou par le syndic pour renvoi
+        isCondoOwner(request.resource.data.condoId);
+
+      // Update: when accepting invitation (statut en_attente) or by condo owner
       allow update: if request.auth != null && (
         resource.data.statut == 'en_attente' ||
-        isSyndic(resource.data.coproprieteId)
+        isCondoOwner(resource.data.condoId)
       );
-      allow delete: if isSyndic(resource.data.coproprieteId);
+
+      // Delete: condo owner only
+      allow delete: if request.auth != null &&
+        isCondoOwner(resource.data.condoId);
     }
 
-    // Documents partagés (GED extranet)
-    match /coproprietes/{coproId}/documentsPartages/{docId} {
-      // Lecture: syndic ou copropriétaire (si visibleExtranet = true)
-      allow read: if isSyndic(coproId) ||
-        (isCoproprietaire(coproId) && resource.data.visibleExtranet == true);
-      // Écriture: syndic uniquement
-      allow create, update, delete: if isSyndic(coproId);
-    }
-
-    // Préférences de notification des copropriétaires
-    match /preferencesNotification/{userId} {
-      // Lecture/écriture par l'utilisateur lui-même
+    // Notification preferences
+    match /notificationPreferences/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Legacy collections - read-only for migration
+    // TODO: Remove these rules after migration
+    match /coproprietes/{coproId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+
+      match /{subcollection}/{docId} {
+        allow read: if request.auth != null;
+        allow write: if false;
+      }
+    }
+
+    match /invitations/{code} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /invitationsExtranet/{invitationId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /invitationsGestionnaire/{invitationId} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

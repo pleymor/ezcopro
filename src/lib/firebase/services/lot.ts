@@ -27,7 +27,7 @@ export async function getLots(coproId: string): Promise<Lot[]> {
   }
 
   const lotsQuery = query(
-    collection(db, 'coproprietes', coproId, 'lots'),
+    collection(db, 'condos', coproId, 'lots'),
     orderBy('numero', 'asc')
   );
   const snapshot = await getDocs(lotsQuery);
@@ -52,7 +52,7 @@ export function subscribeToLots(
   }
 
   const lotsQuery = query(
-    collection(db, 'coproprietes', coproId, 'lots'),
+    collection(db, 'condos', coproId, 'lots'),
     orderBy('numero', 'asc')
   );
 
@@ -73,7 +73,7 @@ export async function getLot(coproId: string, lotId: string): Promise<Lot | null
     return mockStore.lots.find(l => l.id === lotId) || null;
   }
 
-  const lotRef = doc(db, 'coproprietes', coproId, 'lots', lotId);
+  const lotRef = doc(db, 'condos', coproId, 'lots', lotId);
   const lotDoc = await getDoc(lotRef);
 
   if (!lotDoc.exists()) {
@@ -108,7 +108,7 @@ export async function createLot(
     return lot;
   }
 
-  const lotRef = doc(collection(db, 'coproprietes', coproId, 'lots'));
+  const lotRef = doc(collection(db, 'condos', coproId, 'lots'));
   const now = serverTimestamp();
 
   const lot = {
@@ -162,7 +162,7 @@ export async function updateLot(
     return;
   }
 
-  const lotRef = doc(db, 'coproprietes', coproId, 'lots', lotId);
+  const lotRef = doc(db, 'condos', coproId, 'lots', lotId);
   const lotDoc = await getDoc(lotRef);
 
   if (!lotDoc.exists()) {
@@ -207,7 +207,7 @@ export async function deleteLot(
     return;
   }
 
-  const lotRef = doc(db, 'coproprietes', coproId, 'lots', lotId);
+  const lotRef = doc(db, 'condos', coproId, 'lots', lotId);
   const lotDoc = await getDoc(lotRef);
 
   if (!lotDoc.exists()) {
@@ -245,7 +245,7 @@ export async function getLotsByCoproprietaire(
   }
 
   const lotsQuery = query(
-    collection(db, 'coproprietes', coproId, 'lots'),
+    collection(db, 'condos', coproId, 'lots'),
     where('coproprietaireId', '==', coproprietaireId),
     orderBy('numero', 'asc')
   );

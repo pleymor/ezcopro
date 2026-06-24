@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import type { Route } from 'next';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCondo } from '@/lib/hooks/useCondo';
+import { getAllAcceptedInvitationsForUser } from '@/lib/firebase/services/invitation-extranet';
+import { subscribeToCoproprietaires } from '@/lib/firebase/services/coproprietaire';
 import {
   Building2,
   Users,
@@ -22,39 +24,46 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
+  Settings,
+  Eye,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface SubNavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  requiresCopro: boolean;
-  subItems?: Array<{
-    href: string;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }>;
+  requiresCondo: boolean;
+  requiresCoproprietaires?: boolean;
+  subItems?: SubNavItem[];
 }
 
 const navItems: NavItem[] = [
-  { href: '/', label: 'Accueil', icon: Home, requiresCopro: false },
+  { href: '/', label: 'Accueil', icon: Home, requiresCondo: false },
+  { href: '/coproprietaires', label: 'Copropriétaires', icon: Users, requiresCondo: true },
   {
     href: '/lots',
     label: 'Lots',
     icon: Building2,
-    requiresCopro: true,
+    requiresCondo: true,
+    requiresCoproprietaires: true,
     subItems: [
       { href: '/lots/cles-repartition', label: 'Clés de répartition', icon: Key },
     ],
   },
-  { href: '/coproprietaires', label: 'Copropriétaires', icon: Users, requiresCopro: true },
-  { href: '/finances', label: 'Finances', icon: Wallet, requiresCopro: true },
-  { href: '/soldes', label: 'Soldes', icon: PiggyBank, requiresCopro: true },
-  { href: '/documents', label: 'Documents', icon: FileText, requiresCopro: true },
-  { href: '/assemblees-generales', label: 'AG', icon: Vote, requiresCopro: true },
-  { href: '/historique', label: 'Historique', icon: History, requiresCopro: true },
+  { href: '/finances', label: 'Finances', icon: Wallet, requiresCondo: true, requiresCoproprietaires: true },
+  { href: '/soldes', label: 'Soldes', icon: PiggyBank, requiresCondo: true, requiresCoproprietaires: true },
+  { href: '/documents', label: 'Documents', icon: FileText, requiresCondo: true },
+  { href: '/assemblees-generales', label: 'AG', icon: Vote, requiresCondo: true, requiresCoproprietaires: true },
+  { href: '/historique', label: 'Historique', icon: History, requiresCondo: true },
+  { href: '/parametres', label: 'Paramètres', icon: Settings, requiresCondo: true },
 ];
 
 const ressourcesItems = [
@@ -63,11 +72,48 @@ const ressourcesItems = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, signOut } = useAuth();
-  const { coproprietes } = useCopropriete();
+  const { condos, selectedCondo } = useCondo();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const hasCopro = coproprietes.length > 0;
+  const [hasExtranetAccess, setHasExtranetAccess] = useState(false);
+  const [hasCoproprietaires, setHasCoproprietaires] = useState(false);
+  const hasCondo = condos.length > 0;
+
+  // Vérifier si l'utilisateur a au moins une invitation extranet acceptée
+  useEffect(() => {
+    if (!user) {
+      setHasExtranetAccess(false);
+      return;
+    }
+
+    getAllAcceptedInvitationsForUser(user.uid)
+      .then((invitations) => {
+        setHasExtranetAccess(invitations.length > 0);
+      })
+      .catch(() => {
+        setHasExtranetAccess(false);
+      });
+  }, [user]);
+
+  // Vérifier s'il y a des copropriétaires dans la copropriété sélectionnée
+  useEffect(() => {
+    if (!selectedCondo?.id) {
+      setHasCoproprietaires(false);
+      return;
+    }
+
+    const unsubscribe = subscribeToCoproprietaires(selectedCondo.id, (coproprietaires) => {
+      setHasCoproprietaires(coproprietaires.length > 0);
+    });
+
+    return () => unsubscribe();
+  }, [selectedCondo?.id]);
+
+  const handleSwitchToExtranet = () => {
+    router.push('/extranet');
+  };
 
   const toggleExpanded = (href: string) => {
     setExpandedItems((prev) =>
@@ -76,7 +122,8 @@ export function Navigation() {
   };
 
   const isSubItemActive = (item: NavItem) => {
-    return item.subItems?.some((sub) => pathname.startsWith(sub.href)) ?? false;
+    const filtered = item.subItems ?? [];
+    return filtered.some((sub) => pathname.startsWith(sub.href));
   };
 
   const handleSignOut = async () => {
@@ -96,9 +143,10 @@ export function Navigation() {
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
-            const hasSubItems = item.subItems && item.subItems.length > 0;
+            const filteredSubItems = item.subItems ?? [];
+            const hasSubItems = filteredSubItems.length > 0;
             const isExpanded = expandedItems.includes(item.href) || isSubItemActive(item);
-            const isDisabled = item.requiresCopro && !hasCopro;
+            const isDisabled = (item.requiresCondo && !hasCondo) || (item.requiresCoproprietaires && !hasCoproprietaires);
 
             if (isDisabled) {
               return (
@@ -143,7 +191,7 @@ export function Navigation() {
                 </div>
                 {hasSubItems && isExpanded && (
                   <div className="ml-4 mt-1 space-y-1">
-                    {item.subItems!.map((subItem) => {
+                    {filteredSubItems.map((subItem) => {
                       const isSubActive = pathname.startsWith(subItem.href);
                       return (
                         <Link
@@ -195,7 +243,7 @@ export function Navigation() {
           </div>
         </nav>
 
-        <div className="border-t p-4">
+        <div className="border-t p-4 space-y-2">
           <div className="mb-3 flex items-center justify-between">
             {user && (
               <span className="truncate text-sm text-muted-foreground">
@@ -204,6 +252,16 @@ export function Navigation() {
             )}
             <ThemeToggle />
           </div>
+          {hasExtranetAccess && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={handleSwitchToExtranet}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Vue copropriétaire
+            </Button>
+          )}
           <Button
             variant="ghost"
             className="w-full justify-start"
@@ -248,9 +306,10 @@ export function Navigation() {
           <nav className="space-y-1 p-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
-              const hasSubItems = item.subItems && item.subItems.length > 0;
+              const filteredSubItems = item.subItems ?? [];
+              const hasSubItems = filteredSubItems.length > 0;
               const isExpanded = expandedItems.includes(item.href) || isSubItemActive(item);
-              const isDisabled = item.requiresCopro && !hasCopro;
+              const isDisabled = (item.requiresCondo && !hasCondo) || (item.requiresCoproprietaires && !hasCoproprietaires);
 
               if (isDisabled) {
                 return (
@@ -296,7 +355,7 @@ export function Navigation() {
                   </div>
                   {hasSubItems && isExpanded && (
                     <div className="ml-4 mt-1 space-y-1">
-                      {item.subItems!.map((subItem) => {
+                      {filteredSubItems.map((subItem) => {
                         const isSubActive = pathname.startsWith(subItem.href);
                         return (
                           <Link
@@ -350,6 +409,19 @@ export function Navigation() {
             </div>
 
             <hr className="my-4" />
+            {hasExtranetAccess && (
+              <Button
+                variant="outline"
+                className="w-full justify-start mb-2"
+                onClick={() => {
+                  handleSwitchToExtranet();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Vue copropriétaire
+              </Button>
+            )}
             <Button
               variant="ghost"
               className="w-full justify-start"
@@ -366,7 +438,7 @@ export function Navigation() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background md:hidden">
         {navItems.slice(0, 5).map((item) => {
           const isActive = pathname === item.href;
-          const isDisabled = item.requiresCopro && !hasCopro;
+          const isDisabled = (item.requiresCondo && !hasCondo) || (item.requiresCoproprietaires && !hasCoproprietaires);
 
           if (isDisabled) {
             return (

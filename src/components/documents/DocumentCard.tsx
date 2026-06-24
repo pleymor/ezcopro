@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Calendar,
   HardDrive,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +37,11 @@ import { CATEGORIE_LABELS } from '@/lib/schemas/document-partage';
 
 interface DocumentCardProps {
   document: DocumentPartage;
-  onToggleVisibility: (documentId: string, visible: boolean) => Promise<void>;
+  onToggleVisibility?: (documentId: string, visible: boolean) => Promise<void>;
   onDownload: (storagePath: string) => Promise<string>;
-  onDelete: (documentId: string, storagePath: string) => Promise<void>;
+  onDelete?: (documentId: string, storagePath: string) => Promise<void>;
+  onMove?: (document: DocumentPartage) => void;
+  isEditable?: boolean;
 }
 
 const FILE_TYPE_ICONS: Record<string, string> = {
@@ -60,6 +63,8 @@ export function DocumentCard({
   onToggleVisibility,
   onDownload,
   onDelete,
+  onMove,
+  isEditable = true,
 }: DocumentCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -95,6 +100,7 @@ export function DocumentCard({
   };
 
   const handleToggleVisibility = async () => {
+    if (!onToggleVisibility) return;
     setToggling(true);
     try {
       await onToggleVisibility(document.id, !document.visibleExtranet);
@@ -106,6 +112,7 @@ export function DocumentCard({
   };
 
   const handleDelete = async () => {
+    if (!onDelete) return;
     setDeleting(true);
     try {
       await onDelete(document.id, document.storagePath);
@@ -163,13 +170,21 @@ export function DocumentCard({
                   <Download className="h-4 w-4 mr-2" />
                   Télécharger
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-red-600 dark:text-red-400"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
+                {isEditable && onMove && (
+                  <DropdownMenuItem onClick={() => onMove(document)}>
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Déplacer
+                  </DropdownMenuItem>
+                )}
+                {isEditable && onDelete && (
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-red-600 dark:text-red-400"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -193,19 +208,27 @@ export function DocumentCard({
           </div>
 
           {/* Toggle visibilité */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-            <Switch
-              id={`visibility-${document.id}`}
-              checked={document.visibleExtranet}
-              onCheckedChange={handleToggleVisibility}
-              disabled={toggling}
-            />
-            <Label htmlFor={`visibility-${document.id}`} className="text-sm cursor-pointer">
+          {isEditable && onToggleVisibility ? (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+              <Switch
+                id={`visibility-${document.id}`}
+                checked={document.visibleExtranet}
+                onCheckedChange={handleToggleVisibility}
+                disabled={toggling}
+              />
+              <Label htmlFor={`visibility-${document.id}`} className="text-sm cursor-pointer">
+                {document.visibleExtranet
+                  ? 'Visible sur l\'extranet'
+                  : 'Masqué sur l\'extranet'}
+              </Label>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t text-sm text-muted-foreground">
               {document.visibleExtranet
                 ? 'Visible sur l\'extranet'
                 : 'Masqué sur l\'extranet'}
-            </Label>
-          </div>
+            </div>
+          )}
 
           {/* Stats de consultation */}
           {document.visibleExtranet && document.consultePar.length > 0 && (
@@ -222,7 +245,7 @@ export function DocumentCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le document ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer "{document.nom}" ?
+              Êtes-vous sûr de vouloir supprimer &quot;{document.nom}&quot; ?
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>

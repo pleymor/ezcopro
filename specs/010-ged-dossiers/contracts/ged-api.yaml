@@ -1,0 +1,383 @@
+openapi: 3.0.3
+info:
+  title: EzCopro GED API
+  description: |
+    API interne pour la Gestion Électronique de Documents.
+    Note: Cette API est implémentée via Firebase Firestore, pas REST.
+    Ce document sert de contrat pour les hooks React et services Firebase.
+  version: 1.0.0
+
+paths:
+  # ============================================
+  # DOSSIERS
+  # ============================================
+
+  /coproprietes/{coproprieteId}/dossiers:
+    get:
+      operationId: listDossiers
+      summary: Liste les dossiers d'un niveau
+      description: |
+        Hook React: useFolders(coproprieteId, parentId)
+        Retourne les dossiers enfants d'un parent (ou racine si parentId=null)
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: parentId
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: ID du dossier parent, null pour la racine
+      responses:
+        '200':
+          description: Liste des dossiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dossier'
+
+    post:
+      operationId: createDossier
+      summary: Crée un nouveau dossier
+      description: |
+        Service: createDossier(coproprieteId, data)
+        Vérifie la profondeur max (3 niveaux) avant création
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDossierInput'
+      responses:
+        '201':
+          description: Dossier créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dossier'
+        '400':
+          description: Profondeur maximale atteinte ou nom invalide
+
+  /coproprietes/{coproprieteId}/dossiers/{dossierId}:
+    patch:
+      operationId: updateDossier
+      summary: Met à jour un dossier
+      description: |
+        Service: updateDossier(coproprieteId, dossierId, data)
+        Permet de renommer ou changer le niveau d'accès
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dossierId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDossierInput'
+      responses:
+        '200':
+          description: Dossier mis à jour
+
+    delete:
+      operationId: deleteDossier
+      summary: Supprime un dossier
+      description: |
+        Service: deleteDossier(coproprieteId, dossierId, force)
+        Si force=false et dossier non vide, retourne erreur
+        Si force=true, supprime récursivement
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dossierId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: force
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: Dossier supprimé
+        '409':
+          description: Dossier non vide (force=false)
+
+  # ============================================
+  # DOCUMENTS (extension)
+  # ============================================
+
+  /coproprietes/{coproprieteId}/documents/{documentId}/move:
+    post:
+      operationId: moveDocument
+      summary: Déplace un document vers un autre dossier
+      description: |
+        Service: moveDocument(coproprieteId, documentId, targetDossierId)
+        Met à jour dossierId et hérite du niveauAcces du dossier cible
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetDossierId:
+                  type: string
+                  nullable: true
+                  description: ID du dossier cible, null pour la racine
+      responses:
+        '200':
+          description: Document déplacé
+
+  # ============================================
+  # CONSEIL SYNDICAL
+  # ============================================
+
+  /coproprietes/{coproprieteId}/conseil-syndical:
+    get:
+      operationId: listMembresConseil
+      summary: Liste les membres du conseil syndical
+      description: |
+        Hook React: useConseilSyndical(coproprieteId)
+        Retourne tous les membres avec leur rôle
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liste des membres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembreConseil'
+
+    post:
+      operationId: addMembreConseil
+      summary: Ajoute un membre au conseil syndical
+      description: |
+        Service: addMembreConseil(coproprieteId, coproprietaireId, estPresident)
+        Met à jour les custom claims de l'utilisateur
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMembreConseilInput'
+      responses:
+        '201':
+          description: Membre ajouté
+
+  /coproprietes/{coproprieteId}/conseil-syndical/{coproprietaireId}:
+    patch:
+      operationId: updateMembreConseil
+      summary: Met à jour un membre du conseil
+      description: |
+        Service: updateMembreConseil(coproprieteId, coproprietaireId, data)
+        Permet de nommer/retirer comme président
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: coproprietaireId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estPresident:
+                  type: boolean
+      responses:
+        '200':
+          description: Membre mis à jour
+
+    delete:
+      operationId: removeMembreConseil
+      summary: Retire un membre du conseil syndical
+      description: |
+        Service: removeMembreConseil(coproprieteId, coproprietaireId)
+        Met à jour les custom claims (estMembreConseil: false)
+      parameters:
+        - name: coproprieteId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: coproprietaireId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Membre retiré
+
+components:
+  schemas:
+    NiveauAcces:
+      type: string
+      enum: [syndic, conseil, tous]
+      description: |
+        - syndic: Visible uniquement par le syndic
+        - conseil: Visible par syndic + conseil syndical
+        - tous: Visible par tous les copropriétaires
+
+    Dossier:
+      type: object
+      required:
+        - id
+        - nom
+        - parentId
+        - path
+        - depth
+        - niveauAcces
+        - coproprieteId
+        - createdAt
+        - updatedAt
+        - createdBy
+      properties:
+        id:
+          type: string
+        nom:
+          type: string
+          minLength: 1
+          maxLength: 100
+        parentId:
+          type: string
+          nullable: true
+        path:
+          type: string
+          description: Chemin complet (ex. /Contrats/2025)
+        depth:
+          type: integer
+          minimum: 0
+          maximum: 2
+        niveauAcces:
+          $ref: '#/components/schemas/NiveauAcces'
+        coproprieteId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+
+    CreateDossierInput:
+      type: object
+      required:
+        - nom
+        - niveauAcces
+      properties:
+        nom:
+          type: string
+          minLength: 1
+          maxLength: 100
+        parentId:
+          type: string
+          nullable: true
+          default: null
+        niveauAcces:
+          $ref: '#/components/schemas/NiveauAcces'
+
+    UpdateDossierInput:
+      type: object
+      properties:
+        nom:
+          type: string
+          minLength: 1
+          maxLength: 100
+        niveauAcces:
+          $ref: '#/components/schemas/NiveauAcces'
+
+    MembreConseil:
+      type: object
+      required:
+        - coproprietaireId
+        - estPresident
+        - dateNomination
+        - nomineePar
+      properties:
+        coproprietaireId:
+          type: string
+        estPresident:
+          type: boolean
+        dateNomination:
+          type: string
+          format: date-time
+        nomineePar:
+          type: string
+        # Données jointes du copropriétaire
+        nom:
+          type: string
+        prenom:
+          type: string
+        email:
+          type: string
+
+    AddMembreConseilInput:
+      type: object
+      required:
+        - coproprietaireId
+      properties:
+        coproprietaireId:
+          type: string
+        estPresident:
+          type: boolean
+          default: false

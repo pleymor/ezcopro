@@ -32,7 +32,7 @@ export async function getAppels(coproId: string): Promise<AppelDeFonds[]> {
   }
 
   const appelsQuery = query(
-    collection(db, 'coproprietes', coproId, 'appels'),
+    collection(db, 'condos', coproId, 'calls'),
     orderBy('dateEcheance', 'desc')
   );
   const snapshot = await getDocs(appelsQuery);
@@ -58,7 +58,7 @@ export function subscribeToAppels(
   }
 
   const appelsQuery = query(
-    collection(db, 'coproprietes', coproId, 'appels'),
+    collection(db, 'condos', coproId, 'calls'),
     orderBy('dateEcheance', 'desc')
   );
 
@@ -80,7 +80,7 @@ export async function getAppel(coproId: string, appelId: string): Promise<AppelD
     return appel ? (appel as unknown as AppelDeFonds) : null;
   }
 
-  const appelRef = doc(db, 'coproprietes', coproId, 'appels', appelId);
+  const appelRef = doc(db, 'condos', coproId, 'calls', appelId);
   const appelDoc = await getDoc(appelRef);
 
   if (!appelDoc.exists()) {
@@ -99,7 +99,7 @@ export async function getRepartitions(coproId: string, appelId: string): Promise
   }
 
   const repartitionsQuery = query(
-    collection(db, 'coproprietes', coproId, 'appels', appelId, 'repartitions'),
+    collection(db, 'condos', coproId, 'calls', appelId, 'distributions'),
     orderBy('createdAt', 'asc')
   );
   const snapshot = await getDocs(repartitionsQuery);
@@ -124,7 +124,7 @@ export function subscribeToRepartitions(
   }
 
   const repartitionsQuery = query(
-    collection(db, 'coproprietes', coproId, 'appels', appelId, 'repartitions'),
+    collection(db, 'condos', coproId, 'calls', appelId, 'distributions'),
     orderBy('createdAt', 'asc')
   );
 
@@ -206,7 +206,7 @@ export async function createAppelWithRepartitions(
     return appel;
   }
 
-  const appelRef = doc(collection(db, 'coproprietes', coproId, 'appels'));
+  const appelRef = doc(collection(db, 'condos', coproId, 'calls'));
   const now = serverTimestamp();
 
   const appel = {
@@ -262,7 +262,7 @@ export async function createAppelWithRepartitions(
 
     // Créer les répartitions
     for (const rep of repartitionsData) {
-      const repRef = doc(collection(db, 'coproprietes', coproId, 'appels', appelRef.id, 'repartitions'));
+      const repRef = doc(collection(db, 'condos', coproId, 'calls', appelRef.id, 'distributions'));
       transaction.set(repRef, {
         id: repRef.id,
         ...rep,
@@ -308,7 +308,7 @@ export async function deleteAppel(
     return;
   }
 
-  const appelRef = doc(db, 'coproprietes', coproId, 'appels', appelId);
+  const appelRef = doc(db, 'condos', coproId, 'calls', appelId);
   const appelDoc = await getDoc(appelRef);
 
   if (!appelDoc.exists()) {
@@ -319,7 +319,7 @@ export async function deleteAppel(
 
   // Supprimer les répartitions d'abord
   const repartitionsSnapshot = await getDocs(
-    collection(db, 'coproprietes', coproId, 'appels', appelId, 'repartitions')
+    collection(db, 'condos', coproId, 'calls', appelId, 'distributions')
   );
 
   await runTransaction(db, async (transaction) => {

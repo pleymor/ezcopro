@@ -22,14 +22,15 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../config';
-import type { DocumentPartage, CategorieDocument } from '@/types/document-partage';
+import type { DocumentPartage, CategorieDocument, NiveauAcces } from '@/types/document-partage';
 import { QUOTA_STOCKAGE_COPRO, MAX_FILE_SIZE, mimeTypeAutoriseSchema } from '@/lib/schemas/document-partage';
 
 /**
  * Récupère la collection de documents pour une copropriété
+ * Utilise le nouveau schéma condos/{id}/documents
  */
 function getDocumentsCollection(coproprieteId: string) {
-  return collection(db, 'coproprietes', coproprieteId, 'documentsPartages');
+  return collection(db, 'condos', coproprieteId, 'documents');
 }
 
 /**
@@ -38,12 +39,26 @@ function getDocumentsCollection(coproprieteId: string) {
 export function subscribeToDocuments(
   coproprieteId: string,
   callback: (documents: DocumentPartage[]) => void,
-  options?: { visibleExtranetOnly?: boolean; categorie?: CategorieDocument }
+  options?: {
+    visibleExtranetOnly?: boolean;
+    categorie?: CategorieDocument;
+    dossierId?: string | null;
+    niveauAccesFilter?: NiveauAcces[];
+  }
 ): () => void {
   let q: Query<DocumentData> = query(
     getDocumentsCollection(coproprieteId),
     orderBy('createdAt', 'desc')
   );
+
+  // Filter by dossierId if specified (including null for root)
+  if (options?.dossierId !== undefined) {
+    q = query(
+      getDocumentsCollection(coproprieteId),
+      where('dossierId', '==', options.dossierId),
+      orderBy('createdAt', 'desc')
+    );
+  }
 
   if (options?.visibleExtranetOnly) {
     q = query(
@@ -61,13 +76,27 @@ export function subscribeToDocuments(
     );
   }
 
-  return onSnapshot(q, (snapshot) => {
-    const documents = snapshot.docs.map((docSnapshot) => ({
-      id: docSnapshot.id,
-      ...docSnapshot.data(),
-    })) as DocumentPartage[];
-    callback(documents);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      let documents = snapshot.docs.map((docSnapshot) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as DocumentPartage[];
+
+      // Filter by niveauAcces if specified (client-side filter)
+      if (options?.niveauAccesFilter && options.niveauAccesFilter.length > 0) {
+        documents = documents.filter((doc) =>
+          options.niveauAccesFilter!.includes(doc.niveauAcces || 'syndic')
+        );
+      }
+
+      callback(documents);
+    },
+    (error) => {
+      console.error('Error subscribing to documents:', error);
+    }
+  );
 }
 
 /**
@@ -125,6 +154,8 @@ export async function uploadDocument(
     nom: string;
     categorie: CategorieDocument;
     visibleExtranet: boolean;
+    dossierId?: string | null;
+    niveauAcces?: NiveauAcces;
   },
   uploadedBy: string
 ): Promise<DocumentPartage> {
@@ -154,6 +185,11 @@ export async function uploadDocument(
   const storageRef = ref(storage, storagePath);
   await uploadBytes(storageRef, file);
 
+  // Déterminer le niveau d'accès
+  // Si visibleExtranet est true et pas de niveauAcces spécifié, utiliser 'tous' pour compatibilité
+  const niveauAcces = metadata.niveauAcces ||
+    (metadata.visibleExtranet ? 'tous' : 'syndic');
+
   // Création du document Firestore
   const now = Timestamp.now();
   const documentData = {
@@ -163,7 +199,9 @@ export async function uploadDocument(
     storagePath,
     categorie: metadata.categorie,
     visibleExtranet: metadata.visibleExtranet,
-    datePartage: metadata.visibleExtranet ? now : null,
+    dossierId: metadata.dossierId ?? null,
+    niveauAcces,
+    datePartage: metadata.visibleExtranet || niveauAcces !== 'syndic' ? now : null,
     consultePar: [],
     uploadedBy,
     createdAt: now,

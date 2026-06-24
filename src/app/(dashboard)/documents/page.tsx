@@ -1,19 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { FileText, Upload, FolderOpen, HardDrive, RefreshCw, Filter } from 'lucide-react';
-import { useDocuments } from '@/hooks/useDocuments';
+import { useState, useMemo, useCallback } from 'react';
+import { FileText, Upload, FolderOpen, HardDrive, RefreshCw, FolderPlus } from 'lucide-react';
+import { useCondoDocuments } from '@/hooks/useCondoDocuments';
+import { useCondoFolders, useFolderBreadcrumb } from '@/hooks/useCondoFolders';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -22,258 +15,402 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { DocumentUploadForm } from '@/components/documents/DocumentUploadForm';
-import { DocumentCard } from '@/components/documents/DocumentCard';
 import { ErrorMessage } from '@/components/ui/error-message';
-import type { CategorieDocument } from '@/types/document-partage';
-import { CATEGORIE_LABELS, QUOTA_STOCKAGE_COPRO } from '@/lib/schemas/document-partage';
+import { AccessLevelBadge } from '@/components/documents/AccessLevelBadge';
+import type { AccessLevel } from '@/types/document';
 
-type FilterCategorie = CategorieDocument | 'all';
-
-const CATEGORIES: CategorieDocument[] = ['ag', 'contrats', 'reglement', 'travaux', 'autres'];
+const STORAGE_QUOTA = 500 * 1024 * 1024; // 500 MB
 
 /**
- * Page de gestion des documents partagés (syndic)
+ * Documents management page (syndic)
  */
 export default function DocumentsPage() {
+  // Folder navigation state
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+
   const {
     documents,
-    loading,
-    error,
+    loading: docsLoading,
+    error: docsError,
     usedStorage,
     remainingStorage,
     quotaPercentage,
-    categoryCounts,
-    refresh,
+    refresh: refreshDocs,
     upload,
-    toggleVisibility,
-    remove,
-    getDownloadUrl,
-  } = useDocuments();
+  } = useCondoDocuments({ folderId: currentFolderId });
 
-  const [filterCategorie, setFilterCategorie] = useState<FilterCategorie>('all');
+  const {
+    folders,
+    loading: foldersLoading,
+    error: foldersError,
+    refresh: refreshFolders,
+    create: createFolder,
+  } = useCondoFolders({ parentId: currentFolderId });
+
+  const { path: folderPath } = useFolderBreadcrumb(currentFolderId);
+
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderAccessLevel, setNewFolderAccessLevel] = useState<AccessLevel>('all');
 
-  // Filtrer les documents par catégorie
-  const filteredDocuments = useMemo(() => {
-    if (filterCategorie === 'all') {
-      return documents;
-    }
-    return documents.filter((doc) => doc.categorie === filterCategorie);
-  }, [documents, filterCategorie]);
+  // Get current folder details
+  const currentFolder = useMemo(() => {
+    if (!currentFolderId) return null;
+    return folderPath[folderPath.length - 1] ?? null;
+  }, [currentFolderId, folderPath]);
 
   // Stats
-  const visibleCount = documents.filter((d) => d.visibleExtranet).length;
-  const hiddenCount = documents.length - visibleCount;
+  const docsByAccessLevel = useMemo(() => {
+    return {
+      syndic: documents.filter(d => d.accessLevel === 'syndic').length,
+      board: documents.filter(d => d.accessLevel === 'board').length,
+      all: documents.filter(d => d.accessLevel === 'all').length,
+    };
+  }, [documents]);
 
   const formatSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} o`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} Mo`;
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
-  const handleUpload = async (
-    file: File,
-    metadata: { nom: string; categorie: CategorieDocument; visibleExtranet: boolean }
-  ) => {
-    await upload(file, metadata);
+  // Breadcrumb navigation
+  const breadcrumbItems = useMemo(() => {
+    const items: { id: string | null; name: string }[] = [{ id: null, name: 'Root' }];
+    folderPath.forEach((folder) => {
+      items.push({ id: folder.id, name: folder.name });
+    });
+    return items;
+  }, [folderPath]);
+
+  const handleBreadcrumbNavigate = useCallback((folderId: string | null) => {
+    setCurrentFolderId(folderId);
+  }, []);
+
+  const handleFolderClick = useCallback((folderId: string) => {
+    setCurrentFolderId(folderId);
+  }, []);
+
+  const handleCreateFolder = useCallback(async () => {
+    if (!newFolderName.trim()) return;
+    await createFolder({
+      name: newFolderName.trim(),
+      parentId: currentFolderId,
+      accessLevel: newFolderAccessLevel,
+    });
+    setNewFolderName('');
+    setCreateFolderDialogOpen(false);
+  }, [createFolder, currentFolderId, newFolderName, newFolderAccessLevel]);
+
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const file = formData.get('file') as File;
+    const name = formData.get('name') as string;
+    const accessLevel = formData.get('accessLevel') as AccessLevel;
+
+    if (!file || !name) return;
+
+    await upload(file, {
+      name,
+      folderId: currentFolderId,
+      accessLevel,
+    });
     setUploadDialogOpen(false);
   };
 
-  if (loading) {
+  const handleRefresh = useCallback(() => {
+    refreshDocs();
+    refreshFolders();
+  }, [refreshDocs, refreshFolders]);
+
+  const isLoading = docsLoading || foldersLoading;
+  const combinedError = docsError || foldersError;
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (combinedError) {
     return (
-      <div className="container mx-auto py-6">
-        <ErrorMessage message={error.message} onRetry={refresh} />
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <ErrorMessage message={combinedError.message} onRetry={handleRefresh} />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto max-w-4xl px-4 py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileText className="h-6 w-6" />
-            Documents partagés
+            Documents
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gérez les documents accessibles sur l'extranet copropriétaires
+            Manage shared documents for owners
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={refresh}>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Actualiser
+            Refresh
           </Button>
-          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <Dialog open={createFolderDialogOpen} onOpenChange={setCreateFolderDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Upload className="h-4 w-4 mr-2" />
-                Ajouter un document
+              <Button variant="outline">
+                <FolderPlus className="h-4 w-4 mr-2" />
+                New Folder
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Ajouter un document</DialogTitle>
+                <DialogTitle>Create Folder</DialogTitle>
                 <DialogDescription>
-                  Sélectionnez un fichier et choisissez ses paramètres de partage.
+                  Create a new folder to organize your documents.
                 </DialogDescription>
               </DialogHeader>
-              <DocumentUploadForm
-                onUpload={handleUpload}
-                remainingStorage={remainingStorage}
-              />
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Folder Name</label>
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    placeholder="Enter folder name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Access Level</label>
+                  <select
+                    value={newFolderAccessLevel}
+                    onChange={(e) => setNewFolderAccessLevel(e.target.value as AccessLevel)}
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                  >
+                    <option value="syndic">Syndic only</option>
+                    <option value="board">Board members</option>
+                    <option value="all">All owners</option>
+                  </select>
+                </div>
+                <Button onClick={handleCreateFolder} className="w-full">
+                  Create Folder
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Document</DialogTitle>
+                <DialogDescription>
+                  Select a file and set its access level.
+                  {currentFolder && (
+                    <span className="block mt-1">
+                      Uploading to: <strong>{currentFolder.name}</strong>
+                    </span>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">File</label>
+                  <input
+                    type="file"
+                    name="file"
+                    required
+                    className="w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Document Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    placeholder="Enter document name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Access Level</label>
+                  <select
+                    name="accessLevel"
+                    defaultValue="all"
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                  >
+                    <option value="syndic">Syndic only</option>
+                    <option value="board">Board members</option>
+                    <option value="all">All owners</option>
+                  </select>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Remaining space: {formatSize(remainingStorage)}
+                </p>
+                <Button type="submit" className="w-full">
+                  Upload
+                </Button>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Stats et quota */}
+      {/* Breadcrumb */}
+      <nav className="flex items-center space-x-2 text-sm">
+        {breadcrumbItems.map((item, index) => (
+          <span key={item.id ?? 'root'} className="flex items-center">
+            {index > 0 && <span className="mx-2 text-muted-foreground">/</span>}
+            <button
+              onClick={() => handleBreadcrumbNavigate(item.id)}
+              className={`hover:underline ${
+                index === breadcrumbItems.length - 1
+                  ? 'font-medium text-foreground'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              {item.name}
+            </button>
+          </span>
+        ))}
+      </nav>
+
+      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total documents</CardDescription>
+            <CardDescription>Total Documents</CardDescription>
             <CardTitle className="text-3xl">{documents.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Visibles sur l'extranet</CardDescription>
+            <CardDescription>Visible to All</CardDescription>
             <CardTitle className="text-3xl text-green-600 dark:text-green-400">
-              {visibleCount}
+              {docsByAccessLevel.all}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Masqués</CardDescription>
-            <CardTitle className="text-3xl text-muted-foreground">{hiddenCount}</CardTitle>
+            <CardDescription>Board Only</CardDescription>
+            <CardTitle className="text-3xl text-blue-600 dark:text-blue-400">
+              {docsByAccessLevel.board}
+            </CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-1">
               <HardDrive className="h-3 w-3" />
-              Espace utilisé
+              Storage Used
             </CardDescription>
             <CardTitle className="text-xl">
-              {formatSize(usedStorage)} / {formatSize(QUOTA_STOCKAGE_COPRO)}
+              {formatSize(usedStorage)} / {formatSize(STORAGE_QUOTA)}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <Progress value={quotaPercentage} className="h-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {quotaPercentage.toFixed(1)}% utilisé
+              {quotaPercentage.toFixed(1)}% used
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Compteurs par catégorie */}
+      {/* Folders and Documents */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <FolderOpen className="h-5 w-5" />
-            Catégories
+            {currentFolder ? currentFolder.name : 'Root'}
           </CardTitle>
+          <CardDescription>
+            {folders.length} folder{folders.length !== 1 ? 's' : ''} • {documents.length} document{documents.length !== 1 ? 's' : ''}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <Badge
-                key={cat}
-                variant={filterCategorie === cat ? 'default' : 'secondary'}
-                className="cursor-pointer"
-                onClick={() => setFilterCategorie(filterCategorie === cat ? 'all' : cat)}
-              >
-                {CATEGORIE_LABELS[cat]} ({categoryCounts[cat]})
-              </Badge>
-            ))}
-            {filterCategorie !== 'all' && (
-              <Badge
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => setFilterCategorie('all')}
-              >
-                Afficher tout
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Liste des documents */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Liste des documents
-              </CardTitle>
-              <CardDescription>
-                {filteredDocuments.length} document{filteredDocuments.length > 1 ? 's' : ''}
-                {filterCategorie !== 'all' && ` dans ${CATEGORIE_LABELS[filterCategorie]}`}
-              </CardDescription>
+          {/* Folders */}
+          {folders.length > 0 && (
+            <div className="mb-6 grid gap-2">
+              {folders.map((folder) => (
+                <div
+                  key={folder.id}
+                  onClick={() => handleFolderClick(folder.id)}
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted cursor-pointer"
+                >
+                  <FolderOpen className="h-5 w-5 text-blue-500" />
+                  <span className="flex-1 font-medium">{folder.name}</span>
+                  <AccessLevelBadge level={folder.accessLevel} />
+                </div>
+              ))}
             </div>
-            <Select
-              value={filterCategorie}
-              onValueChange={(value) => setFilterCategorie(value as FilterCategorie)}
-            >
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrer par catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les catégories</SelectItem>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {CATEGORIE_LABELS[cat]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredDocuments.length === 0 ? (
+          )}
+
+          {/* Documents */}
+          {documents.length === 0 && folders.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">
-                {documents.length === 0
-                  ? "Aucun document n'a encore été ajouté"
-                  : 'Aucun document dans cette catégorie'}
+                {currentFolderId
+                  ? 'This folder is empty'
+                  : 'No documents or folders yet'}
               </p>
-              {documents.length === 0 && (
+              <div className="flex items-center justify-center gap-2 mt-4">
                 <Button
                   variant="outline"
-                  className="mt-4"
+                  onClick={() => setCreateFolderDialogOpen(true)}
+                >
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  New Folder
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => setUploadDialogOpen(true)}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Ajouter un document
+                  Upload Document
                 </Button>
-              )}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredDocuments.map((doc) => (
-                <DocumentCard
+          ) : documents.length > 0 && (
+            <div className="space-y-2">
+              {documents.map((doc) => (
+                <div
                   key={doc.id}
-                  document={doc}
-                  onToggleVisibility={toggleVisibility}
-                  onDownload={getDownloadUrl}
-                  onDelete={remove}
-                />
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted"
+                >
+                  <FileText className="h-5 w-5 text-gray-500" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{doc.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatSize(doc.size)} • {doc.type}
+                    </p>
+                  </div>
+                  <AccessLevelBadge level={doc.accessLevel} />
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Download
+                  </a>
+                </div>
               ))}
             </div>
           )}

@@ -31,6 +31,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 6%;
@@ -50,7 +51,7 @@
     --success: 142 71% 45%;
     --success-foreground: 210 40% 98%;
     --warning: 38 92% 50%;
-    --warning-foreground: 222.2 84% 4.9%;
+    --warning-foreground: 40 90% 90%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
@@ -68,6 +69,22 @@
     @apply bg-background text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
+}
+
+/* Date/time input - icon on the right */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  position: relative;
+}
+
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0.75rem;
+  cursor: pointer;
 }
 
 /* Mobile-first: touch-friendly targets */

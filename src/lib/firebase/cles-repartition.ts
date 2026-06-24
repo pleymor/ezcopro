@@ -27,12 +27,12 @@ import {
 
 // Collection reference helper
 function getClesRef(coproId: string) {
-  return collection(db, 'coproprietes', coproId, 'clesRepartition');
+  return collection(db, 'condos', coproId, 'distributionKeys');
 }
 
 // Document reference helper
 function getCleRef(coproId: string, cleId: string) {
-  return doc(db, 'coproprietes', coproId, 'clesRepartition', cleId);
+  return doc(db, 'condos', coproId, 'distributionKeys', cleId);
 }
 
 /**
@@ -144,8 +144,8 @@ export async function updateCleRepartition(
  * Check if a clé is used in any appel de fonds
  */
 export async function isCleInUse(coproId: string, cleId: string): Promise<boolean> {
-  const appelsRef = collection(db, 'coproprietes', coproId, 'appels');
-  const q = query(appelsRef, where('cleRepartitionId', '==', cleId), limit(1));
+  const callsRef = collection(db, 'condos', coproId, 'calls');
+  const q = query(callsRef, where('cleRepartitionId', '==', cleId), limit(1));
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 }

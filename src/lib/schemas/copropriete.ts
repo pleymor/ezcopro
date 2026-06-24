@@ -1,15 +1,18 @@
 import { z } from 'zod';
 import { firestoreIdSchema, timestampSchema } from './primitives';
+import { membresMapSchema } from './membre-syndic';
 
 export const coproprieteSchema = z.object({
   id: firestoreIdSchema,
   nom: z.string().min(1).max(200),
   adresse: z.string().min(1).max(500),
-  members: z.array(firestoreIdSchema).min(1),
+  // Map userId -> MembreSyndic (détails des membres)
+  membres: membresMapSchema,
+  // Array des userIds pour les queries Firestore (array-contains)
+  memberIds: z.array(firestoreIdSchema).min(1),
   totalTantiemes: z.number().int().nonnegative(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
-  createdBy: firestoreIdSchema,
 });
 
 export type Copropriete = z.infer<typeof coproprieteSchema>;

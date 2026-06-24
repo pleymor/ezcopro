@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
@@ -12,16 +12,31 @@ import {
   anonymizeCoproprietaire,
 } from '@/lib/firebase/services/coproprietaire';
 import { getLotsByCoproprietaire } from '@/lib/firebase/services/lot';
-import { createInvitationExtranet } from '@/lib/firebase/services/invitation-extranet';
+import {
+  createInvitationExtranet,
+  getInvitationsForCoproprietaire,
+  resendInvitation,
+} from '@/lib/firebase/services/invitation-extranet';
+import { setBoardMemberStatus, setPresidentStatus } from '@/lib/firebase/services/owner';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCoproId } from '@/lib/hooks/useCoproId';
+import { useCondo } from '@/lib/hooks/useCondo';
 import type { Coproprietaire } from '@/types/coproprietaire';
 import type { Lot } from '@/types/lot';
 import { Plus } from 'lucide-react';
 
 export default function CoproprietairesPage() {
   const { user } = useAuth();
-  const { coproId, selectedCopro, loading: coproLoading } = useCoproId();
+  const { selectedCondo, loading: condoLoading } = useCondo();
+  const coproId = selectedCondo?.id ?? null;
+
+  // Permissions basées sur le nouveau modèle condos
+  const canWrite = useMemo(() => {
+    if (!user || !selectedCondo) return false;
+    // Owner peut tout faire
+    if (selectedCondo.ownerId === user.uid) return true;
+    // Board members peuvent aussi écrire
+    return selectedCondo.boardMemberIds?.includes(user.uid) ?? false;
+  }, [user, selectedCondo]);
   const [coproprietaires, setCoproprietaires] = useState<Coproprietaire[]>([]);
   const [lotsMap, setLotsMap] = useState<Record<string, Lot[]>>({});
   const [loading, setLoading] = useState(true);
@@ -31,18 +46,52 @@ export default function CoproprietairesPage() {
 
   // Handler pour inviter un copropriétaire sur l'extranet
   const handleInviteExtranet = useCallback(async (coproprietaireId: string, email: string) => {
-    if (!selectedCopro || !user) {
+    if (!selectedCondo || !user) {
       throw new Error('Copropriété ou utilisateur non défini');
     }
-    await createInvitationExtranet(selectedCopro.id, {
+    await createInvitationExtranet(selectedCondo.id, {
       email,
       coproprietaireId,
     }, user.uid);
-  }, [selectedCopro, user]);
+  }, [selectedCondo, user]);
+
+  // Handler pour renvoyer une invitation
+  const handleResendInvitation = useCallback(async (coproprietaireId: string) => {
+    if (!selectedCondo || !user) {
+      throw new Error('Copropriété ou utilisateur non défini');
+    }
+    // Trouver l'invitation en attente
+    const invitations = await getInvitationsForCoproprietaire(coproprietaireId);
+    const pendingInvitation = invitations.find((inv) => inv.statut === 'en_attente');
+    if (!pendingInvitation) {
+      throw new Error('Aucune invitation en attente');
+    }
+    await resendInvitation(selectedCondo.id, pendingInvitation.id, user.uid);
+  }, [selectedCondo, user]);
+
+  // Handler pour ajouter/retirer du conseil syndical
+  const handleToggleBoardMember = useCallback(async (coproprietaireId: string, isBoardMember: boolean) => {
+    if (!selectedCondo) {
+      throw new Error('Copropriété non définie');
+    }
+    await setBoardMemberStatus(selectedCondo.id, coproprietaireId, isBoardMember);
+  }, [selectedCondo]);
+
+  // Handler pour nommer/retirer président
+  const handleSetPresident = useCallback(async (coproprietaireId: string, isPresident: boolean) => {
+    if (!selectedCondo) {
+      throw new Error('Copropriété non définie');
+    }
+    await setPresidentStatus(selectedCondo.id, coproprietaireId, isPresident);
+  }, [selectedCondo]);
 
   useEffect(() => {
-    if (!coproId) return;
+    if (!coproId) {
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
     const unsubscribe = subscribeToCoproprietaires(coproId, async (updated) => {
       setCoproprietaires(updated);
 
@@ -65,11 +114,11 @@ export default function CoproprietairesPage() {
   }, [coproId]);
 
   const handleAnonymize = async () => {
-    if (!anonymizeTarget || !selectedCopro || !user) return;
+    if (!anonymizeTarget || !selectedCondo || !user) return;
 
     setIsAnonymizing(true);
     try {
-      await anonymizeCoproprietaire(selectedCopro.id, anonymizeTarget.id, user.uid, user.email || '');
+      await anonymizeCoproprietaire(selectedCondo.id, anonymizeTarget.id, user.uid, user.email || '');
       setAnonymizeTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'anonymisation');
@@ -78,12 +127,21 @@ export default function CoproprietairesPage() {
     }
   };
 
-  if (coproLoading || loading) {
+  if (condoLoading || loading) {
     return <Loading message="Chargement des copropriétaires..." />;
   }
 
-  if (!selectedCopro) {
-    return <ErrorMessage message="Aucune copropriété sélectionnée" />;
+  if (!selectedCondo) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8 text-center">
+        <ErrorMessage message="Aucune copropriété sélectionnée" />
+        <Link href="/copro">
+          <Button variant="outline" className="mt-4">
+            Choisir une copropriété
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -95,12 +153,14 @@ export default function CoproprietairesPage() {
             {coproprietaires.length} copropriétaire{coproprietaires.length > 1 ? 's' : ''}
           </p>
         </div>
-        <Link href="/coproprietaires/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter
-          </Button>
-        </Link>
+        {canWrite && (
+          <Link href="/coproprietaires/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter
+            </Button>
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -112,21 +172,28 @@ export default function CoproprietairesPage() {
       {coproprietaires.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground">Aucun copropriétaire pour l&apos;instant</p>
-          <Link href="/coproprietaires/new">
-            <Button variant="outline" className="mt-4">
-              Créer le premier copropriétaire
-            </Button>
-          </Link>
+          {canWrite && (
+            <Link href="/coproprietaires/new">
+              <Button variant="outline" className="mt-4">
+                Créer le premier copropriétaire
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {coproprietaires.map((cp) => (
             <CoproprietaireCard
               key={cp.id}
+              condoId={selectedCondo.id}
               coproprietaire={cp}
               lots={lotsMap[cp.id] || []}
-              onInviteExtranet={(email) => handleInviteExtranet(cp.id, email)}
-              onAnonymize={() => setAnonymizeTarget(cp)}
+              onInviteExtranet={canWrite ? (email) => handleInviteExtranet(cp.id, email) : undefined}
+              onResendInvitation={canWrite ? () => handleResendInvitation(cp.id) : undefined}
+              onToggleBoardMember={canWrite ? (isBoardMember) => handleToggleBoardMember(cp.id, isBoardMember) : undefined}
+              onSetPresident={canWrite ? (isPresident) => handleSetPresident(cp.id, isPresident) : undefined}
+              onAnonymize={canWrite ? () => setAnonymizeTarget(cp) : undefined}
+              isEditable={canWrite}
             />
           ))}
         </div>

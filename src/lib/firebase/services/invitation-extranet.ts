@@ -22,6 +22,7 @@ import {
   mockStoreExtranet,
   createMockInvitation,
 } from '@/lib/test/mock-data-extranet';
+import { linkOwnerToUser } from './owner';
 
 /**
  * Génère un UUID v4 pour le token d'invitation
@@ -45,15 +46,15 @@ export async function createInvitationExtranet(
   }
 
   const token = generateToken();
-  const invRef = doc(collection(db, 'invitationsExtranet'));
+  const invRef = doc(collection(db, 'ownerInvitations'));
 
   const now = new Date();
   const dateExpiration = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 jours
 
-  const invitation: Omit<InvitationExtranet, 'id'> & { coproprieteId: string } = {
+  const invitation: Omit<InvitationExtranet, 'id'> & { condoId: string } = {
     email: input.email,
     coproprietaireId: input.coproprietaireId,
-    coproprieteId,
+    condoId: coproprieteId,
     token,
     dateEnvoi: Timestamp.fromDate(now),
     dateExpiration: Timestamp.fromDate(dateExpiration),
@@ -83,7 +84,7 @@ export async function getInvitationByToken(
   }
 
   const q = query(
-    collection(db, 'invitationsExtranet'),
+    collection(db, 'ownerInvitations'),
     where('token', '==', token)
   );
   const snapshot = await getDocs(q);
@@ -158,7 +159,7 @@ export async function updateInvitationStatus(
     return;
   }
 
-  const invRef = doc(db, 'invitationsExtranet', invitationId);
+  const invRef = doc(db, 'ownerInvitations', invitationId);
   await updateDoc(invRef, {
     statut,
     updatedAt: serverTimestamp(),
@@ -166,8 +167,8 @@ export async function updateInvitationStatus(
 }
 
 /**
- * Marque une invitation comme acceptée
- * Appelé après la création du compte utilisateur
+ * Marque une invitation comme acceptée et lie l'utilisateur au copropriétaire
+ * Appelé après la création du compte utilisateur ou connexion
  */
 export async function acceptInvitation(
   invitationId: string,
@@ -187,13 +188,30 @@ export async function acceptInvitation(
     return;
   }
 
-  const invRef = doc(db, 'invitationsExtranet', invitationId);
+  // Récupérer l'invitation pour obtenir condoId et coproprietaireId
+  const invRef = doc(db, 'ownerInvitations', invitationId);
+  const invDoc = await getDoc(invRef);
+
+  if (!invDoc.exists()) {
+    throw new Error('Invitation non trouvée');
+  }
+
+  const invitationData = invDoc.data();
+
+  // Marquer l'invitation comme acceptée
   await updateDoc(invRef, {
     statut: 'acceptee' as StatutInvitation,
     acceptedBy: userId,
     dateAcceptation: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
+  // Lier l'utilisateur au copropriétaire (owner)
+  await linkOwnerToUser(
+    invitationData.condoId,
+    invitationData.coproprietaireId,
+    userId
+  );
 }
 
 /**
@@ -208,8 +226,8 @@ export async function getInvitationsForCopropriete(
   }
 
   const q = query(
-    collection(db, 'invitationsExtranet'),
-    where('coproprieteId', '==', coproprieteId),
+    collection(db, 'ownerInvitations'),
+    where('condoId', '==', coproprieteId),
     orderBy('dateEnvoi', 'desc')
   );
   const snapshot = await getDocs(q);
@@ -233,7 +251,7 @@ export async function getInvitationsForCoproprietaire(
   }
 
   const q = query(
-    collection(db, 'invitationsExtranet'),
+    collection(db, 'ownerInvitations'),
     where('coproprietaireId', '==', coproprietaireId),
     orderBy('dateEnvoi', 'desc')
   );
@@ -270,7 +288,7 @@ export async function resendInvitation(
     }, userId);
   }
 
-  const invRef = doc(db, 'invitationsExtranet', invitationId);
+  const invRef = doc(db, 'ownerInvitations', invitationId);
   const invDoc = await getDoc(invRef);
 
   if (!invDoc.exists()) {
@@ -310,4 +328,95 @@ export async function hasAcceptedInvitation(
 ): Promise<boolean> {
   const invitations = await getInvitationsForCoproprietaire(coproprietaireId);
   return invitations.some((inv) => inv.statut === 'acceptee');
+}
+
+/**
+ * Annule une invitation extranet (la marque comme expirée)
+ */
+export async function cancelInvitationExtranet(
+  invitationId: string
+): Promise<void> {
+  await updateInvitationStatus(invitationId, 'expiree');
+}
+
+/**
+ * Récupère l'invitation acceptée par un utilisateur (via son UID)
+ * Utilisé comme fallback quand les custom claims ne sont pas définis
+ */
+export async function getAcceptedInvitationForUser(
+  userId: string
+): Promise<{ coproprieteId: string; coproprietaireId: string } | null> {
+  if (IS_TEST_MODE) {
+    // En mode test, pas de fallback nécessaire
+    return null;
+  }
+
+  const q = query(
+    collection(db, 'ownerInvitations'),
+    where('acceptedBy', '==', userId),
+    where('statut', '==', 'acceptee')
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty || !snapshot.docs[0]) {
+    return null;
+  }
+
+  const invitation = snapshot.docs[0].data();
+  return {
+    coproprieteId: invitation.condoId,
+    coproprietaireId: invitation.coproprietaireId,
+  };
+}
+
+export interface AcceptedInvitation {
+  invitationId: string;
+  coproprieteId: string;
+  coproprietaireId: string;
+  email: string;
+  dateAcceptation: Date;
+}
+
+/**
+ * Récupère TOUTES les invitations acceptées par un utilisateur (via son UID)
+ * Permet de supporter les utilisateurs copropriétaires dans plusieurs copropriétés
+ */
+export async function getAllAcceptedInvitationsForUser(
+  userId: string
+): Promise<AcceptedInvitation[]> {
+  if (IS_TEST_MODE) {
+    // En mode test, retourner les invitations acceptées du mock
+    return mockStoreExtranet.invitationsExtranet
+      .filter((inv) => inv.statut === 'acceptee')
+      .map((inv) => ({
+        invitationId: inv.id,
+        coproprieteId: (inv as unknown as { coproprieteId: string }).coproprieteId || 'mock-copro-id',
+        coproprietaireId: inv.coproprietaireId,
+        email: inv.email,
+        dateAcceptation: new Date(),
+      }));
+  }
+
+  const q = query(
+    collection(db, 'ownerInvitations'),
+    where('acceptedBy', '==', userId),
+    where('statut', '==', 'acceptee')
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return [];
+  }
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    const dateAcceptation = data.dateAcceptation as Timestamp | undefined;
+    return {
+      invitationId: doc.id,
+      coproprieteId: data.condoId,
+      coproprietaireId: data.coproprietaireId,
+      email: data.email,
+      dateAcceptation: dateAcceptation?.toDate?.() ?? new Date(),
+    };
+  });
 }

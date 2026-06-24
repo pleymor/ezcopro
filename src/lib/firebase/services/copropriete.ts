@@ -5,10 +5,11 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  serverTimestamp,
   query,
   where,
-  serverTimestamp,
   arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 import { db } from '../config';
 import type { Copropriete, CreateCoproprieteInput, UpdateCoproprieteInput } from '@/types/copropriete';
@@ -29,29 +30,21 @@ export async function createCopropriete(
     id: coproRef.id,
     nom: input.nom,
     adresse: input.adresse,
-    members: [userId],
+    membres: {
+      [userId]: {
+        role: 'admin',
+        email: userEmail,
+        addedAt: now,
+        addedBy: userId,
+      },
+    },
+    memberIds: [userId],
     totalTantiemes: 0,
     createdAt: now,
     updatedAt: now,
-    createdBy: userId,
   };
 
   await setDoc(coproRef, copropriete);
-
-  // Ajouter la copropriété à l'utilisateur
-  const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
-    coproprietes: arrayUnion(coproRef.id),
-    updatedAt: now,
-  }).catch(async () => {
-    // Si l'utilisateur n'existe pas encore, le créer
-    await setDoc(userRef, {
-      id: userId,
-      coproprietes: [coproRef.id],
-      createdAt: now,
-      updatedAt: now,
-    }, { merge: true });
-  });
 
   // Créer l'entrée d'historique
   await createHistoriqueEntry(coproRef.id, {
@@ -84,24 +77,23 @@ export async function getCopropriete(id: string): Promise<Copropriete | null> {
 
 /**
  * Récupère toutes les copropriétés d'un utilisateur
- * Retourne un tableau vide si l'utilisateur n'a pas de copropriétés
- * ou si les permissions Firestore bloquent l'accès (nouveau user)
+ * Query directe sur memberIds (array-contains)
  */
 export async function getUserCoproprietes(userId: string): Promise<Copropriete[]> {
   try {
     const coproQuery = query(
       collection(db, 'coproprietes'),
-      where('members', 'array-contains', userId)
+      where('memberIds', 'array-contains', userId)
     );
+
     const snapshot = await getDocs(coproQuery);
 
-    return snapshot.docs.map((doc) => ({
+    return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-    })) as Copropriete[];
+    } as Copropriete));
   } catch (error) {
-    // Firestore renvoie "permission-denied" pour un utilisateur sans copropriété
-    // car la règle vérifie l'appartenance aux membres avant de permettre la lecture
+    // Firestore renvoie "permission-denied" si pas de droits
     if (error instanceof Error && error.message.includes('permission')) {
       return [];
     }
@@ -147,22 +139,52 @@ export async function updateCopropriete(
 
 /**
  * Ajoute un membre à une copropriété
+ * Met à jour membres (map) et memberIds (array) de manière atomique
  */
 export async function addMemberToCopropriete(
+  coproId: string,
+  userId: string,
+  role: 'admin' | 'gestionnaire' | 'lecteur',
+  addedBy: string,
+  userInfo?: { email?: string; displayName?: string }
+): Promise<void> {
+  const coproRef = doc(db, 'coproprietes', coproId);
+  const now = serverTimestamp();
+
+  const membre: Record<string, unknown> = {
+    role,
+    addedBy,
+    addedAt: now,
+  };
+
+  if (userInfo?.email) {
+    membre.email = userInfo.email;
+  }
+  if (userInfo?.displayName) {
+    membre.displayName = userInfo.displayName;
+  }
+
+  await updateDoc(coproRef, {
+    [`membres.${userId}`]: membre,
+    memberIds: arrayUnion(userId),
+    updatedAt: now,
+  });
+}
+
+/**
+ * Retire un membre d'une copropriété
+ */
+export async function removeMemberFromCopropriete(
   coproId: string,
   userId: string
 ): Promise<void> {
   const coproRef = doc(db, 'coproprietes', coproId);
+  const now = serverTimestamp();
+  const { deleteField } = await import('firebase/firestore');
 
   await updateDoc(coproRef, {
-    members: arrayUnion(userId),
-    updatedAt: serverTimestamp(),
-  });
-
-  // Ajouter la copropriété à l'utilisateur
-  const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
-    coproprietes: arrayUnion(coproId),
-    updatedAt: serverTimestamp(),
+    [`membres.${userId}`]: deleteField(),
+    memberIds: arrayRemove(userId),
+    updatedAt: now,
   });
 }

@@ -79,7 +79,7 @@ export function LotForm({
           defaultValue={initialData?.type || 'appartement'}
           onValueChange={(value) => setValue('type', value as LotType)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="type">
             <SelectValue placeholder="Sélectionner un type" />
           </SelectTrigger>
           <SelectContent>
@@ -137,7 +137,7 @@ export function LotForm({
           defaultValue={initialData?.coproprietaireId || ''}
           onValueChange={(value) => setValue('coproprietaireId', value)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="coproprietaireId">
             <SelectValue placeholder="Sélectionner un propriétaire" />
           </SelectTrigger>
           <SelectContent>

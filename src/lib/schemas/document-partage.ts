@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { firestoreIdSchema, timestampSchema } from './primitives';
+import { niveauAccesSchema } from './dossier';
 
 // Catégories de documents
 export const categorieDocumentSchema = z.enum([
@@ -49,7 +50,9 @@ export const documentPartageSchema = z.object({
   taille: z.number().int().positive().max(MAX_FILE_SIZE),
   storagePath: z.string().min(1),
   categorie: categorieDocumentSchema,
-  visibleExtranet: z.boolean(),
+  visibleExtranet: z.boolean(), // DEPRECATED - conservé pour migration
+  dossierId: z.string().nullable().default(null), // ID du dossier parent, null si racine
+  niveauAcces: niveauAccesSchema.default('syndic'), // Niveau de visibilité du document
   datePartage: timestampSchema.nullable(),
   consultePar: z.array(firestoreIdSchema),
   uploadedBy: firestoreIdSchema,
@@ -63,7 +66,9 @@ export type DocumentPartage = z.infer<typeof documentPartageSchema>;
 export const uploadDocumentInputSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis').max(255, 'Nom trop long'),
   categorie: categorieDocumentSchema,
-  visibleExtranet: z.boolean().default(false),
+  visibleExtranet: z.boolean().default(false), // DEPRECATED - conservé pour compatibilité
+  dossierId: z.string().nullable().default(null), // ID du dossier cible, null pour racine
+  niveauAcces: niveauAccesSchema.default('syndic'), // Niveau de visibilité
 });
 
 export type UploadDocumentInput = z.infer<typeof uploadDocumentInputSchema>;

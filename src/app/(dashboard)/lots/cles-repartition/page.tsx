@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { ArrowLeft } from 'lucide-react';
@@ -9,35 +9,48 @@ import { Loading } from '@/components/ui/loading';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { CleRepartitionList } from '@/components/cles-repartition/CleRepartitionList';
 import { useClesRepartition } from '@/hooks/useClesRepartition';
-import { useCopropriete } from '@/lib/hooks/useCopropriete';
+import { useCondo } from '@/lib/hooks/useCondo';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { subscribeToLots } from '@/lib/firebase/services/lot';
 import type { Lot } from '@/types/lot';
 
 export default function ClesRepartitionPage() {
-  const { selectedCopro, loading: coproLoading } = useCopropriete();
+  const { user } = useAuth();
+  const { selectedCondo, loading: condoLoading } = useCondo();
+
+  // Permissions basées sur le modèle condos
+  const canWrite = useMemo(() => {
+    if (!user || !selectedCondo) return false;
+    if (selectedCondo.ownerId === user.uid) return true;
+    return selectedCondo.boardMemberIds?.includes(user.uid) ?? false;
+  }, [user, selectedCondo]);
   const {
     cles,
     loading: clesLoading,
     error: hookError,
     createDefaultCle,
-  } = useClesRepartition(selectedCopro?.id || '');
+  } = useClesRepartition(selectedCondo?.id || '');
 
   const [lots, setLots] = useState<Lot[]>([]);
   const [lotsLoading, setLotsLoading] = useState(true);
   const [isCreatingDefault, setIsCreatingDefault] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoCreateAttempted = useRef(false);
 
   // Subscribe to lots
   useEffect(() => {
-    if (!selectedCopro) return;
+    if (!selectedCondo) return;
 
-    const unsubscribe = subscribeToLots(selectedCopro.id, (updatedLots) => {
+    // Reset auto-create flag when condo changes
+    autoCreateAttempted.current = false;
+
+    const unsubscribe = subscribeToLots(selectedCondo.id, (updatedLots) => {
       setLots(updatedLots);
       setLotsLoading(false);
     });
 
     return () => unsubscribe();
-  }, [selectedCopro]);
+  }, [selectedCondo]);
 
   // Auto-create default clé on first access if no clés exist
   useEffect(() => {
@@ -47,8 +60,10 @@ export default function ClesRepartitionPage() {
         !lotsLoading &&
         cles.length === 0 &&
         lots.length > 0 &&
-        !isCreatingDefault
+        !isCreatingDefault &&
+        !autoCreateAttempted.current
       ) {
+        autoCreateAttempted.current = true;
         await handleCreateDefault();
       }
     };
@@ -58,7 +73,7 @@ export default function ClesRepartitionPage() {
   }, [clesLoading, lotsLoading, cles.length, lots.length]);
 
   const handleCreateDefault = async () => {
-    if (!selectedCopro || lots.length === 0) return;
+    if (!selectedCondo || lots.length === 0) return;
 
     setIsCreatingDefault(true);
     setError(null);
@@ -74,11 +89,11 @@ export default function ClesRepartitionPage() {
     }
   };
 
-  if (coproLoading || clesLoading || lotsLoading) {
+  if (condoLoading || clesLoading || lotsLoading) {
     return <Loading message="Chargement des clés de répartition..." />;
   }
 
-  if (!selectedCopro) {
+  if (!selectedCondo) {
     return <ErrorMessage message="Aucune copropriété sélectionnée" />;
   }
 
@@ -114,17 +129,21 @@ export default function ClesRepartitionPage() {
           <p className="text-muted-foreground">
             Créez des lots avant de pouvoir gérer les clés de répartition.
           </p>
-          <Link href={'/lots/new' as Route}>
-            <Button variant="outline" className="mt-4">
-              Créer un lot
-            </Button>
-          </Link>
+          {canWrite && (
+            <Link href={'/lots/new' as Route}>
+              <Button variant="outline" className="mt-4">
+                Créer un lot
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <CleRepartitionList
+          condoId={selectedCondo.id}
           cles={cles}
-          onCreateDefault={handleCreateDefault}
+          onCreateDefault={canWrite ? handleCreateDefault : undefined}
           isCreatingDefault={isCreatingDefault}
+          isEditable={canWrite}
         />
       )}
     </div>

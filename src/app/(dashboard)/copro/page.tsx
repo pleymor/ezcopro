@@ -7,6 +7,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/dashboard/EmptyState';
+import type { Route } from 'next';
 import { useCondo } from '@/lib/hooks/useCondo';
 import { condoPath } from '@/lib/utils/condo-routes';
 import { Building2, AlertCircle, Plus, MapPin } from 'lucide-react';
@@ -26,7 +27,7 @@ export default function CoproSelectorPage() {
   const getCondoUrl = useCallback(
     (condoId: string) => {
       if (redirectPath) {
-        return `/copro/${condoId}${redirectPath}`;
+        return `/copro/${condoId}${redirectPath}` as Route;
       }
       return condoPath(condoId);
     },

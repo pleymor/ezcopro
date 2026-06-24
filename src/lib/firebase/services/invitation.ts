@@ -127,8 +127,8 @@ export async function useInvitation(
     usedBy: userId,
   });
 
-  // Ajouter l'utilisateur à la copropriété
-  await addMemberToCopropriete(invitation.coproprietéId, userId);
+  // Ajouter l'utilisateur à la copropriété (en tant que lecteur par défaut)
+  await addMemberToCopropriete(invitation.coproprietéId, userId, 'lecteur', userId);
 
   // Lier l'utilisateur au copropriétaire
   const cpRef = doc(

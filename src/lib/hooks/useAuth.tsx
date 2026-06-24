@@ -46,12 +46,6 @@ function getTestClaims(): CustomClaims {
   };
 }
 
-// Claims par défaut pour le mode test (syndic)
-const TEST_CLAIMS: CustomClaims = {
-  role: 'syndic',
-  coproprieteId: 'test-copro-123',
-};
-
 interface AuthContextType {
   user: AuthUser | null;
   claims: CustomClaims | null;

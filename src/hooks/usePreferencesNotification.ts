@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useUserRole } from './useUserRole';
+import { useExtranetCondo } from './useExtranetCondo';
 import {
   subscribeToPreferences,
   savePreferences,
@@ -27,7 +27,8 @@ export interface UsePreferencesNotificationResult {
  */
 export function usePreferencesNotification(): UsePreferencesNotificationResult {
   const { user } = useAuth();
-  const { coproprieteId, loading: roleLoading } = useUserRole();
+  const { selectedCondo, loading: condoLoading } = useExtranetCondo();
+  const coproprieteId = selectedCondo?.coproprieteId ?? null;
   const [preferences, setPreferences] = useState<PreferencesNotification | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -35,7 +36,7 @@ export function usePreferencesNotification(): UsePreferencesNotificationResult {
 
   // Subscribe aux préférences
   useEffect(() => {
-    if (roleLoading) return;
+    if (condoLoading) return;
 
     if (!coproprieteId || !user?.uid) {
       setPreferences(null);
@@ -60,7 +61,7 @@ export function usePreferencesNotification(): UsePreferencesNotificationResult {
     });
 
     return () => unsubscribe();
-  }, [coproprieteId, user?.uid, roleLoading]);
+  }, [coproprieteId, user?.uid, condoLoading]);
 
   // Mettre à jour les préférences
   const updatePreferences = useCallback(
@@ -97,7 +98,7 @@ export function usePreferencesNotification(): UsePreferencesNotificationResult {
 
   return {
     preferences,
-    loading: loading || roleLoading,
+    loading: loading || condoLoading,
     error,
     saving,
     updatePreferences,

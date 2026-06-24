@@ -1,35 +1,48 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { useAuth } from './useAuth';
-import { getUserCoproprietes } from '@/lib/firebase/services/copropriete';
-import type { Copropriete } from '@/types/copropriete';
+/**
+ * COMPATIBILITY LAYER
+ * This file provides backwards compatibility for components using the old French API.
+ * New code should use useCondo from '@/lib/hooks/useCondo'.
+ *
+ * @deprecated Use useCondo instead
+ */
 
-const STORAGE_KEY = 'ezcopro_selected_copro_id';
-const STORAGE_COPRO_KEY = 'ezcopro_selected_copro';
+import { useMemo } from 'react';
+import { useCondo, CondoProvider } from './useCondo';
+import type { Condo } from '@/types/condo';
 
-// Test mode configuration
-const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
-const TEST_COPRO: Copropriete = {
-  id: 'test-copro-123',
-  nom: 'Résidence Test',
-  adresse: '123 Rue du Test, 75001 Paris',
-  members: ['test-user-123'],
-  totalTantiemes: 500,
-  createdBy: 'test-user-123',
-  createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-  updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-};
+// Re-export the provider with the old name
+export { CondoProvider as CoproprieteProvider };
 
-// Helper to check localStorage test modes (client-side only)
-function isTestEmptyMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem('ezcopro_test_empty_mode') === 'true';
+// Legacy type that maps to the new Condo type
+export interface Copropriete {
+  id: string;
+  nom: string;
+  adresse: string;
+  membres?: Record<string, { role: string; email?: string }>;
+  memberIds?: string[];
+  totalTantiemes: number;
+  createdAt: { seconds: number; nanoseconds: number };
+  updatedAt: { seconds: number; nanoseconds: number };
 }
 
-function isTestErrorMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem('ezcopro_test_error_mode') === 'true';
+// Map a Condo to the legacy Copropriete format
+function condoToCopropriete(condo: Condo | null): Copropriete | null {
+  if (!condo) return null;
+
+  return {
+    id: condo.id,
+    nom: condo.name,
+    adresse: condo.address,
+    membres: {
+      [condo.ownerId]: { role: 'admin' },
+    },
+    memberIds: [condo.ownerId, ...condo.boardMemberIds],
+    totalTantiemes: condo.totalShares,
+    createdAt: condo.createdAt as { seconds: number; nanoseconds: number },
+    updatedAt: condo.updatedAt as { seconds: number; nanoseconds: number },
+  };
 }
 
 interface CoproprieteContextType {
@@ -41,128 +54,38 @@ interface CoproprieteContextType {
   refresh: () => Promise<void>;
 }
 
-const CoproprieteContext = createContext<CoproprieteContextType | undefined>(undefined);
+/**
+ * @deprecated Use useCondo instead
+ */
+export function useCopropriete(): CoproprieteContextType {
+  const { condos, selectedCondo, setSelectedCondo, loading, error, refresh } = useCondo();
 
-interface CoproprieteProviderProps {
-  children: ReactNode;
-}
+  // Map condos to coproprietes
+  const coproprietes = useMemo(() => {
+    return condos.map(condo => condoToCopropriete(condo)!);
+  }, [condos]);
 
-// Lire depuis localStorage (synchrone, côté client)
-function getStoredCopro(): Copropriete | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const saved = localStorage.getItem(STORAGE_COPRO_KEY);
-    return saved ? JSON.parse(saved) : null;
-  } catch {
-    return null;
-  }
-}
+  const selectedCopro = useMemo(() => {
+    return condoToCopropriete(selectedCondo);
+  }, [selectedCondo]);
 
-function getStoredCoproId(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEY);
-}
-
-export function CoproprieteProvider({ children }: CoproprieteProviderProps) {
-  const { user } = useAuth();
-  const [coproprietes, setCoproprietes] = useState<Copropriete[]>([]);
-  // Initialiser avec localStorage (accepte hydration mismatch car c'est intentionnel)
-  const [selectedCopro, setSelectedCoproState] = useState<Copropriete | null>(() => getStoredCopro());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Wrapper pour persister le choix
-  const setSelectedCopro = useCallback((copro: Copropriete | null) => {
-    setSelectedCoproState(copro);
-    if (copro) {
-      localStorage.setItem(STORAGE_KEY, copro.id);
-      localStorage.setItem(STORAGE_COPRO_KEY, JSON.stringify(copro));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STORAGE_COPRO_KEY);
-    }
-  }, []);
-
-  const fetchCoproprietes = useCallback(async () => {
-    if (!user) {
-      setCoproprietes([]);
-      setSelectedCoproState(null);
-      setLoading(false);
+  // Wrap setSelectedCondo to accept legacy format
+  const setSelectedCopro = (copro: Copropriete | null) => {
+    if (!copro) {
+      setSelectedCondo(null);
       return;
     }
+    // Find the original condo
+    const condo = condos.find(c => c.id === copro.id);
+    setSelectedCondo(condo ?? null);
+  };
 
-    // In test mode, use mock data based on localStorage flags
-    if (IS_TEST_MODE) {
-      // Test error mode: simulate loading failure
-      if (isTestErrorMode()) {
-        setError('Erreur de chargement simulée pour les tests');
-        setLoading(false);
-        return;
-      }
-      // Test empty mode: simulate user with no coproprietes
-      if (isTestEmptyMode()) {
-        setCoproprietes([]);
-        setSelectedCoproState(null);
-        setLoading(false);
-        return;
-      }
-      // Default test mode: user with one copropriete
-      setCoproprietes([TEST_COPRO]);
-      setSelectedCoproState(TEST_COPRO);
-      setLoading(false);
-      return;
-    }
-
-    setError(null);
-
-    try {
-      const copros = await getUserCoproprietes(user.uid);
-      setCoproprietes(copros);
-
-      // Vérifier que la copro sauvegardée existe toujours
-      const savedId = getStoredCoproId();
-      const savedCopro = savedId ? copros.find(c => c.id === savedId) : null;
-
-      if (savedCopro) {
-        // Mettre à jour avec les données fraîches
-        setSelectedCoproState(savedCopro);
-        localStorage.setItem(STORAGE_COPRO_KEY, JSON.stringify(savedCopro));
-      } else if (copros.length === 1 && !savedId) {
-        // Auto-sélection uniquement si aucune copro n'était sauvegardée
-        setSelectedCopro(copros[0]!);
-      } else if (savedId && !savedCopro) {
-        // La copro sauvegardée n'existe plus, nettoyer
-        setSelectedCopro(null);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
-    } finally {
-      setLoading(false);
-    }
-  }, [user, setSelectedCopro]);
-
-  useEffect(() => {
-    fetchCoproprietes();
-  }, [user]); // Seulement quand user change
-
-  const value: CoproprieteContextType = {
+  return {
     coproprietes,
     selectedCopro,
     setSelectedCopro,
-    loading: loading && !selectedCopro, // Pas de loading si on a déjà une copro
+    loading,
     error,
-    refresh: fetchCoproprietes,
+    refresh,
   };
-
-  return (
-    <CoproprieteContext.Provider value={value}>{children}</CoproprieteContext.Provider>
-  );
-}
-
-export function useCopropriete(): CoproprieteContextType {
-  const context = useContext(CoproprieteContext);
-  if (context === undefined) {
-    throw new Error('useCopropriete must be used within a CoproprieteProvider');
-  }
-  return context;
 }

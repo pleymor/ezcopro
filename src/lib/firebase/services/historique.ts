@@ -14,6 +14,9 @@ import {
 import { db } from '../config';
 import { IS_TEST_MODE, mockStore, generateTestId } from '@/lib/test/mock-data';
 
+// Collection path: condos/{condoId}/history
+const HISTORY_SUBCOLLECTION = 'history';
+
 export type ActionType = 'create' | 'update' | 'delete';
 export type EntityType = 'lot' | 'coproprietaire' | 'appel' | 'paiement' | 'copropriete' | 'assemblee_generale' | 'resolution' | 'presence' | 'vote';
 
@@ -61,7 +64,7 @@ export async function createHistoriqueEntry(
     return;
   }
 
-  const histRef = doc(collection(db, 'coproprietes', coproId, 'historique'));
+  const histRef = doc(collection(db, 'condos', coproId, HISTORY_SUBCOLLECTION));
 
   await setDoc(histRef, {
     id: histRef.id,
@@ -107,14 +110,14 @@ export async function getHistorique(
   }
 
   let histQuery = query(
-    collection(db, 'coproprietes', coproId, 'historique'),
+    collection(db, 'condos', coproId, HISTORY_SUBCOLLECTION),
     orderBy('timestamp', 'desc'),
     limit(pageLimit + 1) // +1 pour savoir s'il y a plus
   );
 
   if (options.entityType) {
     histQuery = query(
-      collection(db, 'coproprietes', coproId, 'historique'),
+      collection(db, 'condos', coproId, HISTORY_SUBCOLLECTION),
       where('entityType', '==', options.entityType),
       orderBy('timestamp', 'desc'),
       limit(pageLimit + 1)

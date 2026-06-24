@@ -11,6 +11,7 @@ interface InvitationAcceptFormProps {
   email: string;
   coproprieteName?: string;
   onAccept: (password: string) => Promise<void>;
+  onSignIn: (password: string) => Promise<void>;
 }
 
 /**
@@ -21,7 +22,9 @@ export function InvitationAcceptForm({
   email,
   coproprieteName,
   onAccept,
+  onSignIn,
 }: InvitationAcceptFormProps) {
+  const [mode, setMode] = useState<'create' | 'signin'>('create');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +35,7 @@ export function InvitationAcceptForm({
     if (password.length < 8) {
       return 'Le mot de passe doit contenir au moins 8 caractères';
     }
-    if (password !== confirmPassword) {
+    if (mode === 'create' && password !== confirmPassword) {
       return 'Les mots de passe ne correspondent pas';
     }
     return null;
@@ -51,11 +54,25 @@ export function InvitationAcceptForm({
     setError(null);
 
     try {
-      await onAccept(password);
+      if (mode === 'create') {
+        await onAccept(password);
+      } else {
+        await onSignIn(password);
+      }
       // Redirection vers l'extranet après succès
       window.location.href = '/extranet';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création du compte');
+      const errorMessage = err instanceof Error ? err.message : 'Erreur';
+      // Si l'email existe déjà, proposer de se connecter
+      if (errorMessage.includes('email-already-in-use')) {
+        setMode('signin');
+        setError('Un compte existe déjà avec cet email. Connectez-vous avec votre mot de passe.');
+        setConfirmPassword('');
+      } else if (errorMessage.includes('wrong-password') || errorMessage.includes('invalid-credential')) {
+        setError('Mot de passe incorrect');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -64,7 +81,7 @@ export function InvitationAcceptForm({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle>Créer votre compte</CardTitle>
+        <CardTitle>{mode === 'create' ? 'Créer votre compte' : 'Se connecter'}</CardTitle>
         <CardDescription>
           {coproprieteName
             ? `Bienvenue sur l'extranet de ${coproprieteName}`
@@ -118,20 +135,22 @@ export function InvitationAcceptForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-            <Input
-              id="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                setError(null);
-              }}
-              placeholder="Retapez votre mot de passe"
-              disabled={isSubmitting}
-            />
-          </div>
+          {mode === 'create' && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setError(null);
+                }}
+                placeholder="Retapez votre mot de passe"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-destructive">{error}</p>
@@ -145,12 +164,41 @@ export function InvitationAcceptForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Création du compte...
+                {mode === 'create' ? 'Création du compte...' : 'Connexion...'}
               </>
             ) : (
-              'Créer mon compte'
+              mode === 'create' ? 'Créer mon compte' : 'Se connecter'
             )}
           </Button>
+
+          {mode === 'signin' ? (
+            <Button
+              type="button"
+              variant="link"
+              className="w-full"
+              onClick={() => {
+                setMode('create');
+                setError(null);
+                setPassword('');
+              }}
+            >
+              Créer un nouveau compte
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="link"
+              className="w-full"
+              onClick={() => {
+                setMode('signin');
+                setError(null);
+                setPassword('');
+                setConfirmPassword('');
+              }}
+            >
+              J&apos;ai déjà un compte
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>

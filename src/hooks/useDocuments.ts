@@ -13,7 +13,7 @@ import {
   getUsedStorage,
   canUpload,
 } from '@/lib/firebase/services/document-partage';
-import type { DocumentPartage, CategorieDocument } from '@/types/document-partage';
+import type { DocumentPartage, CategorieDocument, NiveauAcces } from '@/types/document-partage';
 import { QUOTA_STOCKAGE_COPRO } from '@/lib/schemas/document-partage';
 
 // Test mode configuration
@@ -29,6 +29,8 @@ const TEST_DOCUMENTS: DocumentPartage[] = [
     storagePath: 'coproprietes/test-copro-123/documents/reglement.pdf',
     categorie: 'reglement',
     visibleExtranet: true,
+    dossierId: null,
+    niveauAcces: 'tous',
     datePartage: { seconds: Math.floor(Date.now() / 1000) - 86400, nanoseconds: 0 },
     consultePar: [],
     uploadedBy: 'test-user-123',
@@ -43,6 +45,8 @@ const TEST_DOCUMENTS: DocumentPartage[] = [
     storagePath: 'coproprietes/test-copro-123/documents/pv-ag-2024.pdf',
     categorie: 'ag',
     visibleExtranet: true,
+    dossierId: null,
+    niveauAcces: 'tous',
     datePartage: { seconds: Math.floor(Date.now() / 1000) - 86400 * 7, nanoseconds: 0 },
     consultePar: ['test-cp-1'],
     uploadedBy: 'test-user-123',
@@ -57,6 +61,8 @@ const TEST_DOCUMENTS: DocumentPartage[] = [
     storagePath: 'coproprietes/test-copro-123/documents/contrat-ascenseur.pdf',
     categorie: 'contrats',
     visibleExtranet: false,
+    dossierId: null,
+    niveauAcces: 'syndic',
     datePartage: null,
     consultePar: [],
     uploadedBy: 'test-user-123',
@@ -64,6 +70,14 @@ const TEST_DOCUMENTS: DocumentPartage[] = [
     updatedAt: { seconds: Math.floor(Date.now() / 1000) - 86400 * 60, nanoseconds: 0 },
   },
 ];
+
+export interface UploadMetadata {
+  nom: string;
+  categorie: CategorieDocument;
+  visibleExtranet: boolean;
+  dossierId?: string | null;
+  niveauAcces?: NiveauAcces;
+}
 
 export interface UseDocumentsResult {
   documents: DocumentPartage[];
@@ -74,10 +88,7 @@ export interface UseDocumentsResult {
   quotaPercentage: number;
   categoryCounts: Record<CategorieDocument, number>;
   refresh: () => void;
-  upload: (
-    file: File,
-    metadata: { nom: string; categorie: CategorieDocument; visibleExtranet: boolean }
-  ) => Promise<DocumentPartage>;
+  upload: (file: File, metadata: UploadMetadata) => Promise<DocumentPartage>;
   toggleVisibility: (documentId: string, visible: boolean) => Promise<void>;
   updateMetadata: (
     documentId: string,
@@ -177,10 +188,7 @@ export function useDocuments(): UseDocumentsResult {
   }, []);
 
   const upload = useCallback(
-    async (
-      file: File,
-      metadata: { nom: string; categorie: CategorieDocument; visibleExtranet: boolean }
-    ): Promise<DocumentPartage> => {
+    async (file: File, metadata: UploadMetadata): Promise<DocumentPartage> => {
       if (!coproprieteId || !user?.uid) {
         throw new Error('Non authentifié ou copropriété non sélectionnée');
       }

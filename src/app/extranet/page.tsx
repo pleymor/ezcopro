@@ -1,6 +1,6 @@
 'use client';
 
-import { useUserRole } from '@/hooks/useUserRole';
+import { useExtranetCondo } from '@/hooks/useExtranetCondo';
 import { useExtranetSolde } from '@/hooks/useExtranetSolde';
 import { useExtranetDocuments } from '@/hooks/useExtranetDocuments';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,11 +15,11 @@ import { CreditCard } from 'lucide-react';
  * Affiche le solde, les derniers documents et les appels de fonds.
  */
 export default function ExtranetPage() {
-  const { loading: roleLoading } = useUserRole();
+  const { loading: condoLoading } = useExtranetCondo();
   const { data: soldeData, loading: soldeLoading, error } = useExtranetSolde();
   const { documents, loading: docsLoading, downloadDocument } = useExtranetDocuments();
 
-  const loading = roleLoading || soldeLoading || docsLoading;
+  const loading = condoLoading || soldeLoading || docsLoading;
 
   if (loading) {
     return (
@@ -31,14 +31,14 @@ export default function ExtranetPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         <ErrorMessage message={error.message} />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto max-w-4xl px-4 py-8 space-y-6">
       <h1 className="text-2xl font-bold">Mon espace copropriétaire</h1>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

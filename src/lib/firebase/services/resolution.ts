@@ -36,7 +36,7 @@ export async function getResolutions(coproId: string, agId: string): Promise<Res
   }
 
   const resQuery = query(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales', agId, 'resolutions'),
+    collection(db, 'condos', coproId, 'meetings', agId, 'resolutions'),
     orderBy('ordre', 'asc')
   );
   const snapshot = await getDocs(resQuery);
@@ -64,7 +64,7 @@ export function subscribeToResolutions(
   }
 
   const resQuery = query(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales', agId, 'resolutions'),
+    collection(db, 'condos', coproId, 'meetings', agId, 'resolutions'),
     orderBy('ordre', 'asc')
   );
 
@@ -124,7 +124,7 @@ export async function createResolution(
   }
 
   const resRef = doc(
-    collection(db, 'coproprietes', coproId, 'assemblees-generales', agId, 'resolutions')
+    collection(db, 'condos', coproId, 'meetings', agId, 'resolutions')
   );
 
   const resolution = {
@@ -187,9 +187,9 @@ export async function updateResolution(
 
   const resRef = doc(
     db,
-    'coproprietes',
+    'condos',
     coproId,
-    'assemblees-generales',
+    'meetings',
     agId,
     'resolutions',
     resolutionId
@@ -252,9 +252,9 @@ export async function deleteResolution(
 
   const resRef = doc(
     db,
-    'coproprietes',
+    'condos',
     coproId,
-    'assemblees-generales',
+    'meetings',
     agId,
     'resolutions',
     resolutionId
@@ -275,9 +275,9 @@ export async function deleteResolution(
   remaining.forEach((res, index) => {
     const ref = doc(
       db,
-      'coproprietes',
+      'condos',
       coproId,
-      'assemblees-generales',
+      'meetings',
       agId,
       'resolutions',
       res.id
@@ -327,9 +327,9 @@ export async function reorderResolutions(
   orderedIds.forEach((id, index) => {
     const ref = doc(
       db,
-      'coproprietes',
+      'condos',
       coproId,
-      'assemblees-generales',
+      'meetings',
       agId,
       'resolutions',
       id
@@ -386,9 +386,9 @@ export async function updateResolutionResults(
 
   const resRef = doc(
     db,
-    'coproprietes',
+    'condos',
     coproId,
-    'assemblees-generales',
+    'meetings',
     agId,
     'resolutions',
     resolutionId

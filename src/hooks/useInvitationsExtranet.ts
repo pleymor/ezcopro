@@ -6,6 +6,7 @@ import {
   getInvitationsForCopropriete,
   createInvitationExtranet,
   resendInvitation,
+  cancelInvitationExtranet,
   hasPendingInvitation,
   hasAcceptedInvitation,
 } from '@/lib/firebase/services/invitation-extranet';
@@ -16,6 +17,7 @@ interface UseInvitationsExtranetResult {
   error: Error | null;
   createInvitation: (input: CreateInvitationInput) => Promise<InvitationExtranet>;
   resendInvitation: (invitationId: string) => Promise<InvitationExtranet>;
+  cancelInvitation: (invitationId: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -76,12 +78,19 @@ export function useInvitationsExtranet(
     return invitation;
   }, [coproprieteId, userId, fetchInvitations]);
 
+  const cancelInvitationHandler = useCallback(async (invitationId: string): Promise<void> => {
+    await cancelInvitationExtranet(invitationId);
+    // Rafraîchir la liste
+    await fetchInvitations();
+  }, [fetchInvitations]);
+
   return {
     invitations,
     loading,
     error,
     createInvitation: createInvitationHandler,
     resendInvitation: resendInvitationHandler,
+    cancelInvitation: cancelInvitationHandler,
     refresh: fetchInvitations,
   };
 }
@@ -120,7 +129,6 @@ export function useInvitationStatus(
         setHasPending(pending);
         setHasAccount(accepted);
       } catch {
-        // Ignorer les erreurs, considérer comme pas d'invitation
         setHasPending(false);
         setHasAccount(false);
       } finally {

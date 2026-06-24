@@ -117,13 +117,13 @@ export default function ConvocationPage({ params }: PageProps) {
         <ConvocationDocument
           ag={ag}
           resolutions={resolutions}
-          coproName={currentCondo.nom}
-          coproAddress={currentCondo.adresse}
+          coproName={currentCondo.name}
+          coproAddress={currentCondo.address}
         />
 
         <PouvoirForm
           ag={ag}
-          coproName={currentCondo.nom}
+          coproName={currentCondo.name}
         />
       </div>
     </div>

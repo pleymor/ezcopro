@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { ReactNode } from 'react'
+import { ReactNode, type JSX } from 'react'
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -31,7 +31,7 @@ const createMatchMediaMock = (matches: boolean) => {
     addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
       if (event === 'change') listeners.push(listener)
     }),
-    removeEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+    removeEventListener: vi.fn((_event: string, listener: (e: MediaQueryListEvent) => void) => {
       const index = listeners.indexOf(listener)
       if (index > -1) listeners.splice(index, 1)
     }),

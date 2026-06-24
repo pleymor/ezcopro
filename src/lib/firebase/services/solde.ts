@@ -25,14 +25,14 @@ export interface SoldeGlobal {
  */
 async function getAllRepartitions(coproId: string): Promise<Repartition[]> {
   // Récupérer tous les appels
-  const appelsSnapshot = await getDocs(collection(db, 'coproprietes', coproId, 'appels'));
+  const appelsSnapshot = await getDocs(collection(db, 'condos', coproId, 'calls'));
 
   // Pour chaque appel, récupérer ses répartitions
   const allRepartitions: Repartition[] = [];
 
   for (const appelDoc of appelsSnapshot.docs) {
     const repartitionsSnapshot = await getDocs(
-      collection(db, 'coproprietes', coproId, 'appels', appelDoc.id, 'repartitions')
+      collection(db, 'condos', coproId, 'calls', appelDoc.id, 'distributions')
     );
 
     repartitionsSnapshot.docs.forEach((doc) => {
@@ -162,7 +162,7 @@ export async function getDetailSoldeCoproprietaire(
   // Récupérer tous les appels avec leurs répartitions
   const appelsSnapshot = await getDocs(
     query(
-      collection(db, 'coproprietes', coproId, 'appels'),
+      collection(db, 'condos', coproId, 'calls'),
       orderBy('dateEcheance', 'desc')
     )
   );
@@ -175,7 +175,7 @@ export async function getDetailSoldeCoproprietaire(
     // Récupérer les répartitions de cet appel pour ce copropriétaire
     const repartitionsSnapshot = await getDocs(
       query(
-        collection(db, 'coproprietes', coproId, 'appels', appelDoc.id, 'repartitions'),
+        collection(db, 'condos', coproId, 'calls', appelDoc.id, 'distributions'),
         where('coproprietaireId', '==', coproprietaireId)
       )
     );

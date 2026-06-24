@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
@@ -11,7 +11,7 @@ import { subscribeToAppels, deleteAppel } from '@/lib/firebase/services/appel';
 import { subscribeToPaiements, deletePaiement } from '@/lib/firebase/services/paiement';
 import { subscribeToCoproprietaires } from '@/lib/firebase/services/coproprietaire';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCoproId } from '@/lib/hooks/useCoproId';
+import { useCondo } from '@/lib/hooks/useCondo';
 import type { AppelDeFonds } from '@/types/appel';
 import type { Paiement } from '@/types/paiement';
 import type { Coproprietaire } from '@/types/coproprietaire';
@@ -23,7 +23,15 @@ type TabType = 'appels' | 'paiements';
 
 export default function FinancesPage() {
   const { user } = useAuth();
-  const { coproId, selectedCopro, loading: coproLoading } = useCoproId();
+  const { selectedCondo, loading: condoLoading } = useCondo();
+  const coproId = selectedCondo?.id ?? null;
+
+  // Permissions basées sur le modèle condos
+  const canWrite = useMemo(() => {
+    if (!user || !selectedCondo) return false;
+    if (selectedCondo.ownerId === user.uid) return true;
+    return selectedCondo.boardMemberIds?.includes(user.uid) ?? false;
+  }, [user, selectedCondo]);
   const [activeTab, setActiveTab] = useState<TabType>('appels');
   const [appels, setAppels] = useState<AppelDeFonds[]>([]);
   const [paiements, setPaiements] = useState<Paiement[]>([]);
@@ -35,8 +43,12 @@ export default function FinancesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!coproId) return;
+    if (!coproId) {
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
     const unsubAppels = subscribeToAppels(coproId, (updated) => {
       setAppels(updated);
       setLoading(false);
@@ -58,11 +70,11 @@ export default function FinancesPage() {
   }, [coproId]);
 
   const handleDeleteAppel = async () => {
-    if (!deleteAppelTarget || !selectedCopro || !user) return;
+    if (!deleteAppelTarget || !selectedCondo || !user) return;
 
     setIsDeleting(true);
     try {
-      await deleteAppel(selectedCopro.id, deleteAppelTarget.id, user.uid, user.email || '');
+      await deleteAppel(selectedCondo.id, deleteAppelTarget.id, user.uid, user.email || '');
       setDeleteAppelTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
@@ -72,11 +84,11 @@ export default function FinancesPage() {
   };
 
   const handleDeletePaiement = async () => {
-    if (!deletePaiementTarget || !selectedCopro || !user) return;
+    if (!deletePaiementTarget || !selectedCondo || !user) return;
 
     setIsDeleting(true);
     try {
-      await deletePaiement(selectedCopro.id, deletePaiementTarget.id, user.uid, user.email || '');
+      await deletePaiement(selectedCondo.id, deletePaiementTarget.id, user.uid, user.email || '');
       setDeletePaiementTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
@@ -97,12 +109,21 @@ export default function FinancesPage() {
   const totalPaye = paiements.reduce((sum, p) => sum + p.montantCents, 0);
   const soldeGlobal = totalAppele - totalPaye;
 
-  if (coproLoading || loading) {
+  if (condoLoading || loading) {
     return <Loading message="Chargement des finances..." />;
   }
 
-  if (!selectedCopro) {
-    return <ErrorMessage message="Aucune copropriété sélectionnée" />;
+  if (!selectedCondo) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8 text-center">
+        <ErrorMessage message="Aucune copropriété sélectionnée" />
+        <Link href="/copro">
+          <Button variant="outline" className="mt-4">
+            Choisir une copropriété
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -160,31 +181,37 @@ export default function FinancesPage() {
       <div role="tabpanel">
         {activeTab === 'appels' && (
           <>
-            <div className="mb-4 flex justify-end">
-              <Link href="/finances/appels/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouvel appel
-                </Button>
-              </Link>
-            </div>
+            {canWrite && (
+              <div className="mb-4 flex justify-end">
+                <Link href="/finances/appels/new">
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouvel appel
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             {appels.length === 0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center">
                 <p className="text-muted-foreground">Aucun appel de fonds</p>
-                <Link href="/finances/appels/new">
-                  <Button variant="outline" className="mt-4">
-                    Créer le premier appel
-                  </Button>
-                </Link>
+                {canWrite && (
+                  <Link href="/finances/appels/new">
+                    <Button variant="outline" className="mt-4">
+                      Créer le premier appel
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="grid gap-4">
                 {appels.map((appel) => (
                   <AppelCard
                     key={appel.id}
+                    condoId={selectedCondo.id}
                     appel={appel}
-                    onDelete={() => setDeleteAppelTarget(appel)}
+                    onDelete={canWrite ? () => setDeleteAppelTarget(appel) : undefined}
+                    isEditable={canWrite}
                   />
                 ))}
               </div>
@@ -194,32 +221,38 @@ export default function FinancesPage() {
 
         {activeTab === 'paiements' && (
           <>
-            <div className="mb-4 flex justify-end">
-              <Link href="/finances/paiements/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Enregistrer un paiement
-                </Button>
-              </Link>
-            </div>
+            {canWrite && (
+              <div className="mb-4 flex justify-end">
+                <Link href="/finances/paiements/new">
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Enregistrer un paiement
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             {paiements.length === 0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center">
                 <p className="text-muted-foreground">Aucun paiement enregistré</p>
-                <Link href="/finances/paiements/new">
-                  <Button variant="outline" className="mt-4">
-                    Enregistrer le premier paiement
-                  </Button>
-                </Link>
+                {canWrite && (
+                  <Link href="/finances/paiements/new">
+                    <Button variant="outline" className="mt-4">
+                      Enregistrer le premier paiement
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="grid gap-4">
                 {paiements.map((paiement) => (
                   <PaiementCard
                     key={paiement.id}
+                    condoId={selectedCondo.id}
                     paiement={paiement}
                     coproprietaireNom={getCoproprietaireNom(paiement.coproprietaireId)}
-                    onDelete={() => setDeletePaiementTarget(paiement)}
+                    onDelete={canWrite ? () => setDeletePaiementTarget(paiement) : undefined}
+                    isEditable={canWrite}
                   />
                 ))}
               </div>

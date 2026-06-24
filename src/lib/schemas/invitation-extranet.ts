@@ -36,3 +36,17 @@ export const acceptInvitationInputSchema = z.object({
 });
 
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationInputSchema>;
+
+// Labels de statut pour l'affichage
+export const statutInvitationExtranetLabels: Record<StatutInvitation, string> = {
+  en_attente: 'En attente',
+  acceptee: 'Acceptée',
+  expiree: 'Expirée',
+};
+
+// Couleurs de statut pour l'affichage
+export const statutInvitationExtranetColors: Record<StatutInvitation, string> = {
+  en_attente: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100',
+  acceptee: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+  expiree: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100',
+};

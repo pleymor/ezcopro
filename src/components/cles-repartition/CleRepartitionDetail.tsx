@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { Route } from 'next';
-import { Pencil, Trash2, Key, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Pencil, Trash2, Key, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,6 +10,7 @@ import { validateQuotePartsTotal } from '@/lib/schemas/cle-repartition';
 import type { Lot } from '@/types/lot';
 import type { Coproprietaire } from '@/types/coproprietaire';
 import { lotTypeLabels } from '@/lib/schemas/lot';
+import { condoPaths } from '@/lib/utils/condo-routes';
 
 interface CleRepartitionDetailProps {
   cle: CleRepartition;
@@ -19,6 +19,7 @@ interface CleRepartitionDetailProps {
   onDelete?: () => void;
   isDeleting?: boolean;
   canDelete?: boolean;
+  condoId: string;
 }
 
 export function CleRepartitionDetail({
@@ -28,6 +29,7 @@ export function CleRepartitionDetail({
   onDelete,
   isDeleting = false,
   canDelete = true,
+  condoId,
 }: CleRepartitionDetailProps) {
   const { total, isValid, deviation } = validateQuotePartsTotal(cle.quoteParts);
 
@@ -43,13 +45,10 @@ export function CleRepartitionDetail({
     return qp?.valeur ?? 0;
   };
 
-  // Calculate percentage for display
-  const getPercentage = (value: number): string => {
-    return ((value / 10000) * 100).toFixed(2);
-  };
-
-  // Sort lots by numero for display
-  const sortedLots = [...lots].sort((a, b) => a.numero.localeCompare(b.numero));
+  // Filter lots that have a quote-part > 0 and sort by numero
+  const includedLots = lots
+    .filter((lot) => getQuotePartValue(lot.id) > 0)
+    .sort((a, b) => a.numero.localeCompare(b.numero));
 
   return (
     <div className="space-y-6">
@@ -71,7 +70,7 @@ export function CleRepartitionDetail({
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href={`/lots/cles-repartition/${cle.id}/edit` as Route}>
+          <Link href={condoPaths.cleRepartitionEdit(condoId, cle.id)}>
             <Button variant="outline" size="sm">
               <Pencil className="mr-2 h-4 w-4" />
               Modifier
@@ -91,15 +90,8 @@ export function CleRepartitionDetail({
         </div>
       </div>
 
-      {/* Total validation */}
-      {isValid ? (
-        <Alert variant="default" className="border-green-500/50 bg-green-500/10">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-400">
-            Le total des quotes-parts est égal à 10000 millièmes (100%).
-          </AlertDescription>
-        </Alert>
-      ) : (
+      {/* Total validation - only show if invalid */}
+      {!isValid && (
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -124,16 +116,13 @@ export function CleRepartitionDetail({
               <th className="px-4 py-3 text-left text-sm font-medium">
                 Tantièmes
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium">
+              <th className="px-4 py-3 text-right text-sm font-medium">
                 Quote-part
-              </th>
-              <th className="px-4 py-3 text-right text-sm font-medium hidden sm:table-cell">
-                %
               </th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {sortedLots.map((lot) => {
+            {includedLots.map((lot) => {
               const value = getQuotePartValue(lot.id);
               return (
                 <tr key={lot.id} className="hover:bg-muted/25">
@@ -147,10 +136,7 @@ export function CleRepartitionDetail({
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {lot.tantiemes}
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium">{value}</td>
-                  <td className="px-4 py-3 text-sm text-right text-muted-foreground hidden sm:table-cell">
-                    {getPercentage(value)}%
-                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-right">{value}</td>
                 </tr>
               );
             })}
@@ -160,11 +146,8 @@ export function CleRepartitionDetail({
               <td colSpan={4} className="px-4 py-3 text-sm font-medium text-right">
                 Total
               </td>
-              <td className={`px-4 py-3 text-sm font-bold ${isValid ? 'text-green-600' : 'text-amber-600'}`}>
+              <td className={`px-4 py-3 text-sm font-bold text-right ${isValid ? '' : 'text-amber-600'}`}>
                 {total}
-              </td>
-              <td className={`px-4 py-3 text-sm text-right font-medium hidden sm:table-cell ${isValid ? 'text-green-600' : 'text-amber-600'}`}>
-                {getPercentage(total)}%
               </td>
             </tr>
           </tfoot>

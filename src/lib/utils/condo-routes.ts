@@ -2,15 +2,21 @@
  * Helper functions to generate condo-scoped URLs.
  * All dashboard routes should use these helpers.
  */
+import type { Route } from 'next';
 
 /**
  * Generate a condo-scoped path.
+ *
+ * The return type is cast to `Route` so the dynamically-built path satisfies
+ * Next.js typed routes (`typedRoutes: true`), which otherwise reject plain
+ * `string` hrefs in `<Link>` / `router.push`.
+ *
  * @param condoId - The condo ID
  * @param path - Optional path suffix (should start with '/')
  * @returns The full path, e.g., '/copro/abc123/lots'
  */
-export function condoPath(condoId: string, path: string = ''): string {
-  return `/copro/${condoId}${path}`;
+export function condoPath(condoId: string, path: string = ''): Route {
+  return `/copro/${condoId}${path}` as Route;
 }
 
 /**

@@ -56,7 +56,7 @@ export function PaiementForm({
           defaultValue={initialData?.coproprietaireId || ''}
           onValueChange={(value) => setValue('coproprietaireId', value)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="coproprietaireId">
             <SelectValue placeholder="Sélectionner un copropriétaire" />
           </SelectTrigger>
           <SelectContent>
